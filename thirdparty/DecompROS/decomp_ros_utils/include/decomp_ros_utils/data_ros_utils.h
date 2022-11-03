@@ -81,7 +81,7 @@ inline vec_E<Polyhedron3D> ros_to_polyhedron_array(const decomp_ros_msgs::Polyhe
   return polys;
 }
 
-inline decomp_ros_msgs::Polyhedron polyhedron_to_ros(const Polyhedron2D& poly)
+inline decomp_ros_msgs::Polyhedron polyhedron_to_ros(const Polyhedron2D& poly,double t = 0.0,double poly_id = 0.0)
 {
   decomp_ros_msgs::Polyhedron msg;
   for (const auto& p : poly.hyperplanes())
@@ -112,7 +112,7 @@ inline decomp_ros_msgs::Polyhedron polyhedron_to_ros(const Polyhedron2D& poly)
   return msg;
 }
 
-inline decomp_ros_msgs::Polyhedron polyhedron_to_ros(const Polyhedron3D& poly)
+inline decomp_ros_msgs::Polyhedron polyhedron_to_ros(const Polyhedron3D& poly,double t = 0,double poly_id = 0)
 {
   decomp_ros_msgs::Polyhedron msg;
   for (const auto& p : poly.hyperplanes())
@@ -124,6 +124,8 @@ inline decomp_ros_msgs::Polyhedron polyhedron_to_ros(const Polyhedron3D& poly)
     n.x = p.n_(0);
     n.y = p.n_(1);
     n.z = p.n_(2);
+    msg.polyhedron_id.push_back(poly_id);
+    msg.timestamp.push_back(t);
     msg.points.push_back(pt);
     msg.normals.push_back(n);
   }
@@ -132,11 +134,11 @@ inline decomp_ros_msgs::Polyhedron polyhedron_to_ros(const Polyhedron3D& poly)
 }
 
 template <int Dim>
-decomp_ros_msgs::PolyhedronArray polyhedron_array_to_ros(const vec_E<Polyhedron<Dim>>& vs)
+decomp_ros_msgs::PolyhedronArray polyhedron_array_to_ros(const vec_E<Polyhedron<Dim>>& vs,double t = 0.0,double poly_id = 0.0)
 {
   decomp_ros_msgs::PolyhedronArray msg;
   for (const auto& v : vs)
-    msg.polyhedrons.push_back(polyhedron_to_ros(v));
+    msg.polyhedrons.push_back(polyhedron_to_ros(v,t,poly_id));
   return msg;
 }
 

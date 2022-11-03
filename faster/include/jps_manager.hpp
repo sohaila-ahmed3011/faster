@@ -26,7 +26,7 @@
 #include <vector>
  
 extern vec_E<Polyhedron<3>> incremental_polys;
-
+extern double counter_incre;
 
 class JPS_Manager
 {

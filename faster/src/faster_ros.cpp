@@ -198,7 +198,7 @@ void FasterRos::replanCB(const ros::TimerEvent& e)
     publishJPSPath(JPS_whole, JPS_WHOLE);
 
     publishPoly(poly_safe, SAFE);
-    publishPoly(incremental_polys, WHOLE);
+    publishPoly(poly_whole, WHOLE);
     pubTraj(X_safe, SAFE_COLORED);
     pubTraj(X_whole, WHOLE_COLORED);
   }
@@ -207,15 +207,17 @@ void FasterRos::replanCB(const ros::TimerEvent& e)
 void FasterRos::publishPoly(const vec_E<Polyhedron<3>>& poly, int type)
 {
   // std::cout << "Going to publish= " << (poly[0].hyperplanes())[0].n_ << std::endl;
-  decomp_ros_msgs::PolyhedronArray poly_msg = DecompROS::polyhedron_array_to_ros(poly);
+  decomp_ros_msgs::PolyhedronArray poly_msg = DecompROS::polyhedron_array_to_ros(poly,counter_incre);
   poly_msg.header.frame_id = world_name_;
 
   switch (type)
   {
     case SAFE:
-      poly_safe_pub_.publish(poly_msg);
+      //poly_safe_pub_.publish(poly_msg);
       break;
     case WHOLE:
+      //decomp_ros_msgs::PolyhedronArray poly_msg = DecompROS::polyhedron_array_to_ros(poly,counter_incre);
+      //poly_msg.header.frame_id = world_name_;
       poly_whole_pub_.publish(poly_msg);
       break;
   }

@@ -79,7 +79,8 @@ void JPS_Manager::setDroneRadius(double drone_radius)
 
 /////////////////////////////////////////////////////////////////////
 vec_E<Polyhedron<3>> incremental_polys;
-int counter_incre {0};
+std::vector<LinearConstraint3D> incremental_l_constraints;
+double counter_incre {0.0};
 ////////////////////////////////////////////////////////////////////
 void JPS_Manager::cvxEllipsoidDecomp(vec_Vecf<3>& path, int type_space, std::vector<LinearConstraint3D>& l_constraints,
                                      vec_E<Polyhedron<3>>& poly_out)
@@ -99,6 +100,7 @@ void JPS_Manager::cvxEllipsoidDecomp(vec_Vecf<3>& path, int type_space, std::vec
   else
   {
     ellip_decomp_util_.set_obs(vec_o_);
+    counter_incre += 1;
   }
   //}
   ellip_decomp_util_.set_local_bbox(Vec3f(2, 2, 1));  // Only try to find cvx decomp in the Mikowsski sum of JPS and
@@ -112,19 +114,19 @@ void JPS_Manager::cvxEllipsoidDecomp(vec_Vecf<3>& path, int type_space, std::vec
   // std::vector<polytope> polytopes;
   auto polys = ellip_decomp_util_.get_polyhedrons();
 
-  if (type_space == OCCUPIED_SPACE) 
-  { 
-    if (incremental_polys.size() > 15){
-      incremental_polys.erase(incremental_polys.begin(), incremental_polys.begin()+polys.size());
-    }
-    else if (counter_incre % 20 == 0)
-    {
-      incremental_polys.insert(incremental_polys.end(), polys.begin(), polys.end());
-    }
-        counter_incre += 1;
-  } 
+  // if (type_space == OCCUPIED_SPACE) 
+  // { 
+  //   if (incremental_polys.size() > 15){
+  //     incremental_polys.erase(incremental_polys.begin(), incremental_polys.begin()+polys.size());
+  //   }
+  //   else if (counter_incre % 20 == 0)
+  //   {
+  //     incremental_polys.insert(incremental_polys.end(), polys.begin(), polys.end());
+  //   }
+  //       counter_incre += 1;
+  // } 
 
-  std::cout << "Incremental polys size:  " << incremental_polys.size() << std::endl;
+  //std::cout << "Incremental polys size:  " << incremental_polys.size() << std::endl;
   l_constraints.clear();
 
   for (size_t i = 0; i < path.size() - 1; i++)
@@ -139,6 +141,7 @@ void JPS_Manager::cvxEllipsoidDecomp(vec_Vecf<3>& path, int type_space, std::vec
     cs.b_[cs.b_.rows() - 1] = -z_ground_;
 
     l_constraints.push_back(cs);
+    //incremental_l_constraints.push_back(cs);
   }
   poly_out = ellip_decomp_util_.get_polyhedrons();
 
