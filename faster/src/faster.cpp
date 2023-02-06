@@ -15,17 +15,30 @@
 #include <algorithm>
 #include <vector>
 #include <stdlib.h>
+#include <fstream>
+
 
 using namespace JPS;
 using namespace termcolor;
+
 
 // Uncomment the type of timer you want:
 // typedef ROSTimer MyTimer;
 // typedef ROSWallTimer MyTimer;
 typedef Timer MyTimer;
 
+double par_res; 
+double par_x; 
+double par_y;
+double par_z;
+
 Faster::Faster(parameters par) : par_(par)
 {
+  par_res = par_.res;
+  par_x = par_.wdx;
+  par_y = par_.wdy;
+  par_z = par_.wdz;
+
   drone_status_ == DroneStatus::YAWING;
   // mtx_G.lock();
   G_.pos << 0, 0, 0;
@@ -293,9 +306,128 @@ bool Faster::initialized()
   return true;
 }
 
+typedef boost::packaged_task<multi_plan_return> task_t;
+typedef boost::shared_ptr<task_t> ptask_t;
+std::vector<boost::shared_future<multi_plan_return>> pending_data;
+boost::asio::io_service ioService;
+boost::thread_group threadpool;
+std::unique_ptr<boost::asio::io_service::work> service_work;
+
+//0 for single point, 1 for multi points, 2 for multi thread
+int option {1};
+bool initiate_threads {true}; // flag for the threads
+bool initiate_time {true}; // flag for time files
+
+
+void Faster::push_job(Faster * worker,state A, state &E, bool &solvedjps, vec_E<Polyhedron<3>> &poly_tmp, 
+                                  std::vector<LinearConstraint3D> &l_constraints_whole_) {
+
+  ptask_t task = boost::make_shared<task_t>(boost::bind(&Faster::multi_plan_any_point, worker, A, E, solvedjps, poly_tmp, l_constraints_whole_));
+  boost::shared_future<multi_plan_return> fut(task->get_future());
+  pending_data.push_back(fut);
+  ioService.post(boost::bind(&task_t::operator(), task));
+}
+
+bool Faster::init(){
+    service_work = boost::make_unique<boost::asio::io_service::work>(ioService);
+    std::cout<< "Number of threads that can support this system: " << boost::thread::hardware_concurrency() << std::endl;
+    for (int i = 0; i < boost::thread::hardware_concurrency(); ++i)
+    {
+      threadpool.create_thread(boost::bind(&boost::asio::io_service::run, &ioService));
+    }
+    std::cout<< "Thread pool has been initialized..." << boost::thread::hardware_concurrency() << std::endl;
+    return true;
+}
+
+ multi_plan_return Faster::multi_plan_any_point(state A, state &E, bool &solvedjps, vec_E<Polyhedron<3>> &poly_tmp, 
+                                  std::vector<LinearConstraint3D> &l_constraints_whole_){
+  vec_Vecf<3> JPSk = jps_manager_.solveJPS3D(A.pos, E.pos, &solvedjps, 1);
+  multi_plan_return return_;
+  if (solvedjps == false)
+  {
+    std::cout << bold << red << "JPS didn't find a solution for parallel point E" << reset << std::endl;
+    return return_;
+  }
+
+  vec_Vecf<3> JPS_in = JPSk;
+  // createMoreVertexes in case dist between vertexes is too big
+  createMoreVertexes(JPS_in, par_.dist_max_vertexes);
+
+  vec_Vecf<3> JPS_whole = JPS_in;
+  deleteVertexes(JPS_whole, par_.max_poly_whole);
+  E.pos = JPS_whole[JPS_whole.size() - 1];
+  jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_tmp);
+
+  return_.constraints = l_constraints_whole_;
+  return_.polys = poly_tmp;
+
+  return return_;
+ }
+
+void Faster::multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Polyhedron<3>> &poly_whole_out,
+                          double ra,vec_Vecf<3> &JPS_whole, vec_Vecf<3> &JPS_in, vec_Vecf<3> &JPSk){  
+
+  //////////////////////////////////////////////////////////////////////////
+  ///////////////// Solve with GUROBI Whole trajectory /////////////////////
+  //////////////////////////////////////////////////////////////////////////
+
+    deleteVertexes(JPS_whole, par_.max_poly_whole);
+    E.pos = JPS_whole[JPS_whole.size() - 1];
+
+    state E1, E2;
+    double a = ra*cos(30*3.14159/180);
+    double b = sqrt(ra*ra - a*a);
+    E1.setPos( E.pos[0]+a, E.pos[1]+b,E.pos[2]);
+    E2.setPos( E.pos[0]+a, E.pos[1]-b,E.pos[2]);
+
+    bool solvedjps1;
+    vec_E<Polyhedron<3>> poly_tmp_1;
+    std::vector<LinearConstraint3D> l_constraints_whole_1;  // Polytope (Linear) constraints for E1
+
+    bool solvedjps2;
+    vec_E<Polyhedron<3>> poly_tmp_2;
+    std::vector<LinearConstraint3D> l_constraints_whole_2;  // Polytope (Linear) constraints for E2
+
+  //////////////////////////////////////////////////////////////////////////
+  ///////////////////////  Threads Implementation //////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+
+    if (option == 2){
+      // initiate the threads only once
+      if (initiate_threads){
+        Faster::init();
+        initiate_threads = false;
+      }
+    
+      push_job(this, A, E1, solvedjps1, poly_tmp_1, l_constraints_whole_1);
+      push_job(this, A, E2, solvedjps2, poly_tmp_2, l_constraints_whole_2);
+
+      boost::wait_for_all(pending_data.begin(), pending_data.end());
+      jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
+  
+      for(auto result : pending_data){
+        poly_whole_out.insert(poly_whole_out.end(), result.get().polys.begin(), result.get().polys.end());
+        l_constraints_whole_.insert(l_constraints_whole_.end(), result.get().constraints.begin(), result.get().constraints.end());
+      }
+      pending_data.clear();
+
+    }
+    else if(option == 1){
+
+      multi_plan_any_point(A, E1, solvedjps1, poly_tmp_1, l_constraints_whole_1);
+      multi_plan_any_point(A, E2, solvedjps2, poly_tmp_2, l_constraints_whole_2);
+      jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
+      poly_whole_out.insert(poly_whole_out.end(), poly_tmp_1.begin(), poly_tmp_1.end());
+      poly_whole_out.insert(poly_whole_out.end(), poly_tmp_2.begin(), poly_tmp_2.end());
+      l_constraints_whole_.insert(l_constraints_whole_.end(), l_constraints_whole_1.begin(), l_constraints_whole_1.end());
+      l_constraints_whole_.insert(l_constraints_whole_.end(), l_constraints_whole_2.begin(), l_constraints_whole_2.end());
+    }
+    
+   }
+
+
 void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E<Polyhedron<3>>& poly_safe_out,
-                    vec_E<Polyhedron<3>>& poly_whole_out, std::vector<state>& X_safe_out,
-                    std::vector<state>& X_whole_out)
+                    vec_E<Polyhedron<3>>& poly_whole_out, std::vector<state>& X_safe_out, std::vector<state>& X_whole_out)
 {
   MyTimer replanCB_t(true);
   if (initializedAllExceptPlanner() == false)
@@ -354,65 +486,64 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   //////////////////////////////////////////////////////////////////////////
   ///////////////////////// Solve JPS //////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////
-
   bool solvedjps = false;
   MyTimer timer_jps(true);
-
+  
   vec_Vecf<3> JPSk = jps_manager_.solveJPS3D(A.pos, G.pos, &solvedjps, 1);
 
   if (solvedjps == false)
   {
-    std::cout << bold << red << "JPS didn't find a solution" << std::endl;
+    std::cout << bold << red << "JPS didn't find a solution" << reset << std::endl;
     return;
   }
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////// Find JPS_in /////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
 
-  //////////////////////////////////////////////////////////////////////////
-  ///////////////////////// Find JPS_in ////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////
+    double ra = std::min((dist_to_goal - 0.001), par_.Ra);  // radius of the sphere S
+    bool noPointsOutsideS;
+    int li1;  // last index inside the sphere of JPSk
+    state E;
+    E.pos = getFirstIntersectionWithSphere(JPSk, ra, JPSk[0], &li1, &noPointsOutsideS);
+    vec_Vecf<3> JPS_in(JPSk.begin(), JPSk.begin() + li1 + 1);
+    if (noPointsOutsideS == false)
+    {
+      JPS_in.push_back(E.pos);
+    }
+    // createMoreVertexes in case dist between vertexes is too big
+    createMoreVertexes(JPS_in, par_.dist_max_vertexes);
+    vec_Vecf<3> JPS_whole = JPS_in;
 
-  double ra = std::min((dist_to_goal - 0.001), par_.Ra);  // radius of the sphere S
-  bool noPointsOutsideS;
-  int li1;  // last index inside the sphere of JPSk
-  state E;
-  E.pos = getFirstIntersectionWithSphere(JPSk, ra, JPSk[0], &li1, &noPointsOutsideS);
-  vec_Vecf<3> JPS_in(JPSk.begin(), JPSk.begin() + li1 + 1);
-  if (noPointsOutsideS == false)
-  {
-    JPS_in.push_back(E.pos);
-  }
-  // createMoreVertexes in case dist between vertexes is too big
-  createMoreVertexes(JPS_in, par_.dist_max_vertexes);
 
-  //////////////////////////////////////////////////////////////////////////
-  ///////////////// Solve with GUROBI Whole trajectory /////////////////////
-  //////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////
+///////////////// Solve with GUROBI Whole trajectory /////////////////////
+//////////////////////////////////////////////////////////////////////////
 
   if (par_.use_faster == true)
-  {
-    vec_Vecf<3> JPS_whole = JPS_in;
-    deleteVertexes(JPS_whole, par_.max_poly_whole);
-    E.pos = JPS_whole[JPS_whole.size() - 1];
+   {
 
-    // Convex Decomp around JPS_whole
-    MyTimer cvx_ellip_decomp_t(true);
-    jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
-    // std::cout << "poly_whole_out= " << poly_whole_out.size() << std::endl;
+      if (option !=0){
+        multi_plan_E( A, E, G, solvedjps, poly_whole_out, ra, JPS_whole, JPS_in, JPSk);
+      }
 
+      else if (option == 0){
+
+      deleteVertexes(JPS_whole, par_.max_poly_whole);
+      E.pos = JPS_whole[JPS_whole.size() - 1];
+      jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
+
+    }
+  
     // Check if G is inside poly_whole
     bool isGinside_whole = l_constraints_whole_[l_constraints_whole_.size() - 1].inside(G.pos);
+
     E.pos = (isGinside_whole == true) ? G.pos : E.pos;
 
     // Set Initial cond, Final cond, and polytopes for the whole traj
     sg_whole_.setX0(A);
     sg_whole_.setXf(E);
     sg_whole_.setPolytopes(l_constraints_whole_);
-
-    /*    std::cout << "Initial Position is inside= " << l_constraints_whole_[l_constraints_whole_.size() -
-       1].inside(A.pos)
-                  << std::endl;
-        std::cout << "Final Position is inside= " << l_constraints_whole_[l_constraints_whole_.size() - 1].inside(E.pos)
-                  << std::endl;
-    */
     // Solve with Gurobi
     MyTimer whole_gurobi_t(true);
     bool solved_whole = sg_whole_.genNewTraj();
@@ -425,7 +556,6 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
 
     // Get Results
     sg_whole_.fillX();
-
     // Copy for visualization
     X_whole_out = sg_whole_.X_temp_;
     JPS_whole_out = JPS_whole;
@@ -437,6 +567,7 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
     dummy_vector.push_back(dummy);
     sg_whole_.X_temp_ = dummy_vector;
   }
+
 
   /*  std::cout << "This is the WHOLE TRAJECTORY" << std::endl;
     printStateVector(sg_whole_.X_temp_);
@@ -588,9 +719,39 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   sg_safe_.setFactorInitialAndFinalAndIncrement(new_init_safe, new_final_safe, par_.increment_safe);
 
   planner_initialized_ = true;
-
+  
   std::cout << bold << blue << "Replanning took " << replanCB_t.ElapsedMs() << " ms" << reset << std::endl;
-
+  
+  if (option == 0){
+    if (initiate_time){
+        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_single_point.txt", std::ofstream::out | std::ofstream::trunc);
+        time_logger.close();
+        initiate_time = false;
+      }
+  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_single_point.txt", std::ios_base::app);
+  time_logger << replanCB_t.ElapsedMs() << "\n";
+  time_logger.close();
+  
+  }else if (option == 1){
+    if (initiate_time){
+        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi.txt", std::ofstream::out | std::ofstream::trunc);
+        time_logger.close();
+        initiate_time = false;
+      }
+  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi.txt", std::ios_base::app);
+  time_logger << replanCB_t.ElapsedMs() << "\n";
+  time_logger.close();
+  
+  }else if (option == 2){
+    if (initiate_time){
+        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi_thread.txt", std::ofstream::out | std::ofstream::trunc);
+        time_logger.close();
+        initiate_time = false;
+      }
+  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi_thread.txt", std::ios_base::app);
+  time_logger << replanCB_t.ElapsedMs() << "\n";
+  time_logger.close();
+  }
   return;
 }
 

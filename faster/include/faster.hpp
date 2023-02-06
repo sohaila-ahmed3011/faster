@@ -8,6 +8,8 @@
 
 #pragma once
 
+// #include <iostream>
+
 #include <pcl/kdtree/kdtree.h>
 #include <Eigen/StdVector>
 #include <stdio.h>
@@ -15,6 +17,13 @@
 #include <algorithm>
 #include <vector>
 #include <stdlib.h>
+#include <boost/thread.hpp>
+
+#include <boost/asio/io_service.hpp>
+#include <boost/bind.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/make_unique.hpp>
+
 
 #include "timer.hpp"
 #include "termcolor.hpp"
@@ -50,14 +59,28 @@ enum PlannerStatus
 using namespace JPS;
 using namespace termcolor;
 
+struct multi_plan_return{
+ std::vector<LinearConstraint3D> constraints;
+ vec_E<Polyhedron<3>> polys;
+};
+
 class Faster
 {
 public:
   Faster(parameters par);
+  // Faster() {};
+  bool init();
   void replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E<Polyhedron<3>>& poly_safe_out,
               vec_E<Polyhedron<3>>& poly_whole_out, std::vector<state>& X_safe_out, std::vector<state>& X_whole_out);
   void updateState(state data);
+  multi_plan_return multi_plan_any_point(state A, state &E, bool &solvedjps, vec_E<Polyhedron<3>> &poly_tmp, 
+                            std::vector<LinearConstraint3D> &l_constraints_whole_);
+  void multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Polyhedron<3>> &poly_whole_out, 
+                    double ra, vec_Vecf<3> &JPS_whole, vec_Vecf<3> &JPS_in,vec_Vecf<3> &JPSk);
 
+ void push_job(Faster * worker,state A, state &E, bool &solvedjps, vec_E<Polyhedron<3>> &poly_tmp, 
+                                  std::vector<LinearConstraint3D> &l_constraints_whole_); 
+ 
   void updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_unk);
   bool getNextGoal(state& next_goal);
   void getState(state& data);
@@ -127,6 +150,7 @@ private:
   vec_E<Polyhedron<3>> polyhedra_;
   std::vector<LinearConstraint3D> l_constraints_whole_;  // Polytope (Linear) constraints
   std::vector<LinearConstraint3D> l_constraints_safe_;   // Polytope (Linear) constraints
+  std::ofstream time_logger;
 
   int deltaT_ = 10;
   int deltaT_min_ = 10;
