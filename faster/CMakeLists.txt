@@ -5,8 +5,8 @@ project(faster)
 add_definitions(-std=c++11)
 #add_definitions(-std=c99)
 
-find_package( Eigen3 REQUIRED )
-include_directories(${EIGEN3_INCLUDE_DIR} ${PCL_INCLUDE_DIRS} include)
+find_package( Eigen3 REQUIRED  octomap REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR} ${PCL_INCLUDE_DIRS} ${OCTOMAP_INCLUDE_DIRS} include)
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
@@ -22,6 +22,12 @@ endif(GUROBI_FOUND)
 
 set(CMAKE_BUILD_TYPE Release) #From terminal: catkin config -DCMAKE_BUILD_TYPE=Release (or RelWithDebInfo)
 
+
+# set(CMAKE_BUILD_TYPE "DEBUG")
+# set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC -fvisibility=hidden")
+# set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g --debug-cpp --trace-expand -fvisibility=hidden")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_MATH_DISABLE_FLOAT128 -O1 -Wall -g --debug -fvisibility=hidden")
+
 include_directories(${GUROBI_INCLUDE_DIRS})
 #set(GUROBI_LIBRARIES "${GUROBI_CXX_LIBRARY};${GUROBI_LIBRARY}" )
 
@@ -35,6 +41,7 @@ find_package(catkin REQUIRED COMPONENTS
 	pcl_ros
 	decomp_util
 	decomp_ros_utils
+	nav_msgs
 )
 find_package(decomp_util REQUIRED)
 include_directories(${DECOMP_UTIL_INCLUDE_DIRS})
@@ -55,7 +62,7 @@ FILE(GLOB GurobiSOFiles $ENV{GUROBI_HOME}/lib/libgurobi*[0-9].so) #files that ar
 set(GUROBI_LIBRARIES "$ENV{GUROBI_HOME}/lib/libgurobi_c++.a;${GurobiSOFiles};$ENV{GUROBI_HOME}/lib/" )
 
 add_executable(${PROJECT_NAME}_node src/main.cpp src/faster.cpp src/faster_ros.cpp src/utils.cpp  src/jps_manager.cpp src/solverGurobi.cpp)
-target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${JPS3D_LIBRARIES} ${DECOMP_UTIL_LIBRARIES} ${GUROBI_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${JPS3D_LIBRARIES} ${DECOMP_UTIL_LIBRARIES} ${GUROBI_LIBRARIES} ${OCTOMAP_LIBRARIES})
 add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS} )
 
 

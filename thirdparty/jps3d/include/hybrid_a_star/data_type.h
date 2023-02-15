@@ -1,5 +1,5 @@
-#ifndef DATA_TYPE_H
-#define DATA_TYPE_H
+#ifndef DATA_TYPE_H_
+#define DATA_TYPE_H_
 /*! \brief Rename the float type used in lib
 
     Default is set to be double, but user can change it to float.

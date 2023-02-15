@@ -1,7 +1,7 @@
 //
 // Created by meng on 2021/9/3.
 //
-#include "kino_a_star.h"
+#include <hybrid_a_star/kino_a_star.h>
 #include <cmath>
 #include <unordered_set>
 
@@ -15,17 +15,17 @@ void KinoAStar<Graph, State>::setGraph(std::shared_ptr<Graph>& graph){
 
 
 template<typename Graph, typename State>
-void KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end_pt, std::function<huristics_cost_t(Vec3f a, Vec3f start_velocity, Vec3f b)> calculate_huristics) {
+bool KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end_pt, std::function<huristics_cost_t(Vec3f a, Vec3f start_velocity, Vec3f b)> calculate_huristics) {
     ros::Time start_time = ros::Time::now();
     Vec3i start_idx = graph_->coord2gridIndex(start_pt);
     Vec3f start_velocity(0.0, 0.0, 0.0);
 
-     typename State::Ptr current_node_ptr = nullptr;
-     typename State::Ptr neighbor_node_ptr = nullptr;
+    typename State::Ptr current_node_ptr = nullptr;
+    typename State::Ptr neighbor_node_ptr = nullptr;
     open_set_.clear();
 
 
-     typename State::Ptr start_node_ptr = new State(start_idx, start_pt);
+    typename State::Ptr start_node_ptr = new State(start_idx, start_pt);
     start_node_ptr->g_score_ = 0.0;
     start_node_ptr->f_score_ = calculate_huristics(start_pt, start_velocity, end_pt);
     start_node_ptr->id_ = State::WOULD_LIKE; // neither in open list nor in closed list
@@ -45,7 +45,7 @@ void KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end
             terminate_ptr_ = current_node_ptr;
             ros::Duration use_time = ros::Time::now() - start_time;
             ROS_INFO("\033[1;32m --> hybrid A* use time: %f (ms)\033[0m", use_time.toSec() * 1000);
-            return;
+            return true;
         }
         
 
@@ -97,6 +97,7 @@ void KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end
         }
     }
     ROS_WARN_STREAM("Hybrid A* failed to search path!");
+    return false;
 }
 
 template<typename Graph, typename State>
@@ -142,7 +143,7 @@ TrajectoryStatePtr ***KinoAStar<Graph, State>::trajectoryLibrary(const Vec3f &st
                     pos = pos + vel * delta_time + 0.5 * acc_input * delta_time * delta_time;
                     vel = vel + acc_input * delta_time;
 
-                    Position.push_back(pos);j
+                    Position.push_back(pos);
                     Velocity.push_back(vel);
                     double coord_x = pos(0);
                     double coord_y = pos(1);
@@ -175,8 +176,8 @@ TrajectoryStatePtr ***KinoAStar<Graph, State>::trajectoryLibrary(const Vec3f &st
 
 
 template<typename Graph, typename State>
-std::vector<Vec3f> KinoAStar<Graph, State>::getPath() {
-    std::vector<Vec3f> path;
+vec_E<Vec3f> KinoAStar<Graph, State>::getPath() {
+    vec_E<Vec3f> path;
     std::vector< typename State::Ptr> grid_path;
 
      typename State::Ptr grid_node_ptr = terminate_ptr_;

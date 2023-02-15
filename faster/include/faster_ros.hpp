@@ -82,7 +82,7 @@ private:
 
   void pubActualTraj();
   visualization_msgs::MarkerArray clearArrows();
-
+  void costMapCallBack(const nav_msgs::OccupancyGridPtr &costmap_msg_ptr);
   void updateInitialCond(int i);
   void yaw(double diff, snapstack_msgs::Goal& quad_goal);
 
@@ -155,7 +155,7 @@ private:
   ros::Subscriber sub_odom_;
   ros::Subscriber sub_mode_;
   ros::Subscriber sub_vicon_;
-
+  ros::Subscriber _cost_map_sub;
   // Eigen::Vector3d accel_vicon_;
 
   ros::Subscriber sub_frontier_;
@@ -183,11 +183,14 @@ private:
 
   message_filters::Subscriber<sensor_msgs::PointCloud2> occup_grid_sub_;
   message_filters::Subscriber<sensor_msgs::PointCloud2> unknown_grid_sub_;
+  // message_filters::Subscriber<nav_msgs::OccupancyGridPtr> _cost_map_sub_;
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::PointCloud2, sensor_msgs::PointCloud2>
       MySyncPolicy;
   typedef message_filters::Synchronizer<MySyncPolicy> Sync;
   boost::shared_ptr<Sync> sync_;
 
   int actual_trajID_ = 0;
+  nav_msgs::OccupancyGridPtr _cost_map_;
+
   // faster_msgs::Mode mode_;
 };

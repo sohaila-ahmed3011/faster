@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(jps3d)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-deprecated-declarations")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wno-deprecated-declarations")
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE RelWithDebInfo)
@@ -34,7 +34,8 @@ link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 add_library(jps_lib src/jps_planner/graph_search.cpp
-  src/jps_planner/jps_planner.cpp ${PCL_LIBRARIES})
+  src/jps_planner/jps_planner.cpp src/hybrid_a_star/hybrid_a_star_manager.cpp  src/hybrid_a_star/grid_graph.cpp
+  src/hybrid_a_star/kino_a_star.cpp ${PCL_LIBRARIES})
 
 #add_library(dmp_lib src/distance_map_planner/graph_search.cpp
 #  src/distance_map_planner/distance_map_planner.cpp ${PCL_LIBRARIES}) 
@@ -71,5 +72,5 @@ install(TARGETS jps_lib
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
 
-install(DIRECTORY include/jps_basis include/jps_planner include/jps_collision
+install(DIRECTORY include/jps_basis include/jps_planner include/jps_collision include/hybrid_a_star
   DESTINATION include)

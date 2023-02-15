@@ -1,0 +1,11 @@
+---
+setw -g mouse on
+roslaunch acl_sim start_world.launch
+---
+roslaunch acl_sim perfect_tracker_and_sim.launch
+---
+roslaunch global_mapper_ros global_mapper_node.launch
+---
+roslaunch faster faster_interface.launch
+---
+roslaunch faster faster.launch

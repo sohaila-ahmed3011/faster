@@ -58,10 +58,10 @@ public:
               vec_E<Polyhedron<3>>& poly_whole_out, std::vector<state>& X_safe_out, std::vector<state>& X_whole_out);
   void updateState(state data);
 
-  void updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_unk);
+  void updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_unk,  nav_msgs::OccupancyGridPtr costmap_msg_ptr);
   bool getNextGoal(state& next_goal);
   void getState(state& data);
-  void getG(state& G);
+  void getG(state& G);  
   void setTerminalGoal(state& term_goal);
   void resetInitialization();
 

@@ -20,7 +20,6 @@
 #include <iomanip>
 #include "data_type.h"
 #include "State.h"
-#include "vis_utils.h"
 #include "grid_graph.h"
 #include "kino_a_star.h"
 #include <nav_msgs/OccupancyGrid.h>
@@ -32,20 +31,19 @@ class Planner {
     public:
         Planner() = default;
         ~Planner() = default;
-        void init(ros::NodeHandle& nh);
-        void waypointsCallback(const nav_msgs::Path &wp);
-        void mapCallBack(const sensor_msgs::PointCloud2 &pointcloud_map);
+        bool plan(Vec3f &start,  Vec3f &goal);
+        // void mapCallBack(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+        vec_E<Vec3f> getPath();
         void setObstacles();
         void costMapCallBack(const nav_msgs::OccupancyGridPtr &costmap_msg_ptr);
         void odomCallback(const nav_msgs::OdometryConstPtr& msg);
-        void waypointCallback(const nav_msgs::PathConstPtr& msg);
+        void setmap(nav_msgs::OccupancyGridPtr costMapPtr, int _x_size, int _y_size, int _z_size, double res);
 
         kino_planner::SearchInfo params;
         int max_iteration;
-        message_filters::Subscriber<sensor_msgs::PointCloud2> occup_grid_sub_;
 
     private:
-        double _map_resolution, _inv_map_resolution;
+        double _map_resolution {0.15}, _inv_map_resolution;
         double _x_size, _y_size, _z_size;
         Vec3f _start_pt, _start_velocity;
         bool _has_map = false;
@@ -56,16 +54,12 @@ class Planner {
         int _discretize_step = 2;
         double _time_interval = 1.25;
         int _time_step = 50;
-        std::shared_ptr<VisualizationUtils> vis_util;
         std::shared_ptr<GridGraph3D> graph_;
-        std::shared_ptr<AStar3D> _a_star;
         std::shared_ptr<HybridAStar3D> _hybrid_a_star;
-        std::shared_ptr<RRT3D> _rrt;
-        std::shared_ptr<RRTStar3D> _rrt_star;
-        std::shared_ptr<kinematicAStar2D> _kinodynamic_astar;
         nav_msgs::OccupancyGridPtr _cost_map_;
         std::deque<Eigen::Vector3d> waypoints_list;
         nav_msgs::Odometry odom;
+        bool initBool_ {true};
 
 };
 #endif //ROBOT_PLANNER_INI

@@ -1,0 +1,9 @@
+---
+setw -g mouse on
+roslaunch faster ground_robot.launch
+---
+roslaunch global_mapper_ros global_mapper_node.launch quad:=JA01
+---
+roslaunch faster faster_interface.launch quad:=JA01 is_ground_robot:=true
+---
+roslaunch faster faster.launch quad:=JA01

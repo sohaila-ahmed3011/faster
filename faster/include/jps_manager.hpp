@@ -16,6 +16,7 @@
 #include "read_map.hpp"
 #include <jps_basis/data_utils.h>
 #include <jps_planner/jps_planner/jps_planner.h>
+#include <hybrid_a_star/hybrid_a_star_manager.h>
 
 #include <Eigen/Dense>
 
@@ -32,12 +33,14 @@ public:
 
   std::shared_ptr<JPS::VoxelMapUtil> map_util_;
   std::unique_ptr<JPSPlanner3D> planner_ptr_;
+  std::shared_ptr<Planner> hybrid_a_star_ptr_;
+
 
   vec_Vec3f vec_o_;   // Vector that contains the occupied points
   vec_Vec3f vec_uo_;  // Vector that contains the unkown and occupied points
 
   // JPS
-  void updateJPSMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr, Eigen::Vector3d& center);
+  void updateJPSMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr, Eigen::Vector3d& center, nav_msgs::OccupancyGridPtr ocubptr);
   vec_Vecf<3> solveJPS3D(Vec3f& start, Vec3f& goal, bool* solved, int i);
   void setNumCells(int cells_x, int cells_y, int cells_z);
 

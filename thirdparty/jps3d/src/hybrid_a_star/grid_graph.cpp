@@ -1,4 +1,4 @@
-#include "grid_graph.h"
+#include <hybrid_a_star/grid_graph.h>
 #include <cmath>
 #include <unordered_set>
 
@@ -46,20 +46,19 @@ namespace hagen_planner
 
     template<typename State>
     void GridGraph<State>::InitGridMap(double map_grid_resolution, double map_upper_x, double map_upper_y, kino_planner::SearchInfo& params) {
-        
-        wheel_base_ = params.wheel_base;
+        // wheel_base_ = params.wheel_base;
+        wheel_base_ = 1;
         steering_discrete_num_ = params.steering_angle_discrete_num;
         steering_radian_ = params.steering_angle * M_PI / 180.0; // angle to radian
         steering_radian_step_size_ = steering_radian_ / steering_discrete_num_;
         move_step_size_ = params.segment_length / params.segment_length_discrete_num;
-        
+       
         segment_length_discrete_num_ = static_cast<int>(params.segment_length_discrete_num);
         // CHECK_EQ(static_cast<float>(segment_length_discrete_num_ * move_step_size_), static_cast<float>(segment_length_))
         // << "The segment length must be divisible by the step size. segment_length: "
         // << segment_length_ << " | step_size: " << move_step_size_;
         STATE_GRID_SIZE_PHI_ = params.grid_size_phi;
         ANGULAR_RESOLUTION_ = 360.0 / STATE_GRID_SIZE_PHI_ * M_PI / 180.0;
-
         auto map_resolution = 1.0;
         map_x_lower_ = 0;
         map_x_upper_ = 2*xyz_coord_upper_(0)/map_grid_resolution;
@@ -75,7 +74,6 @@ namespace hagen_planner
 
         MAP_GRID_SIZE_X_ = std::floor((map_x_upper_ - map_x_lower_) / MAP_GRID_RESOLUTION_);
         MAP_GRID_SIZE_Y_ = std::floor((map_y_upper_ - map_y_lower_) / MAP_GRID_RESOLUTION_);
-
         map_data_.clear();
         map_data_.assign(MAP_GRID_SIZE_X_ * MAP_GRID_SIZE_Y_, 0);
         state_node_map_ = new typename State::Ptr **[STATE_GRID_SIZE_X_];

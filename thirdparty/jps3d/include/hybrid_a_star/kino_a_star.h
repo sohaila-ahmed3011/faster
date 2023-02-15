@@ -13,9 +13,9 @@ public:
 
     ~KinoAStar() = default;
 
-    void searchPath(const Vec3f &start_pt, const Vec3f &end_pt, std::function<huristics_cost_t(Vec3f a, Vec3f start_velocity, Vec3f b)> calculate_huristics);
+    bool searchPath(const Vec3f &start_pt, const Vec3f &end_pt, std::function<huristics_cost_t(Vec3f a, Vec3f start_velocity, Vec3f b)> calculate_huristics);
     void setGraph(std::shared_ptr<Graph>& graph);
-    std::vector<Vec3f> getPath();
+    vec_E<Vec3f> getPath();
     TrajectoryStatePtr ***trajectoryLibrary(const Vec3f &start_pt, const Vec3f &start_velocity,
                                             const Vec3f &target_pt, std::function<huristics_cost_t(Vec3f a, Vec3f start_velocity, Vec3f b)> calculate_huristics);
 private:
