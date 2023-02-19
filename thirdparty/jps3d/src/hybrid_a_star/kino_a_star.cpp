@@ -57,7 +57,7 @@ bool KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end
         }
 
         graph_->getNeighbors(trajectory_state_ptr, neighbors_ptr, neighbors_traj_state, discretize_step_);
-
+        // std::cout << "neighbors_ptr SIZE " << neighbors_ptr.size() << std::endl;
         for (unsigned int i = 0; i < neighbors_ptr.size(); ++i) {
             neighbor_node_ptr = neighbors_ptr[i];
 
@@ -71,6 +71,7 @@ bool KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end
                 open_set_.insert(std::make_pair(neighbor_node_ptr->f_score_, neighbor_node_ptr));
 
                 neighbor_node_ptr->id_ = State::WILL_BE; // in open list
+                // std::cout << "Debug 1" << std::endl;
                 continue;
             } else if (neighbor_node_ptr->id_ == State::WILL_BE) {
                 if (neighbor_node_ptr->g_score_ > current_node_ptr->g_score_ + delta_score) {
@@ -89,6 +90,7 @@ bool KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end
                             break;
                         }
                     }
+                    // std::cout << "Debug 2" << std::endl;
                 }
                 continue;
             } else {

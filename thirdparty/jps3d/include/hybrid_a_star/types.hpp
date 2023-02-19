@@ -36,16 +36,16 @@ struct SearchInfo
   float analytic_expansion_ratio;
   double steering_angle = 15.0;
   int steering_angle_discrete_num = 1;
-  double wheel_base = 2.0;
+  double wheel_base = 0.262; //2.0;
   double segment_length = 1.6;
   int segment_length_discrete_num = 8;
   double steering_penalty = 1.5;
   double steering_change_penalty = 2.0;
   double shot_distance = 5.0;
   double grid_size_phi = 72.0;
-  double vehicle_width = 4.7;
-  double vehicle_length = 2.0;
-  double track;
+  double vehicle_width = 0.310;  //4.7;
+  double vehicle_length = 0.420; //2.0;
+  double track = 0.37559;
   std::string vehicle_type;
 };
 

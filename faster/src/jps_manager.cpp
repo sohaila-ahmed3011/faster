@@ -127,17 +127,19 @@ void JPS_Manager::cvxEllipsoidDecomp(vec_Vecf<3>& path, int type_space, std::vec
   poly_out = ellip_decomp_util_.get_polyhedrons();
 }
 
-void JPS_Manager::updateJPSMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr, Eigen::Vector3d& center, nav_msgs::OccupancyGridPtr ocubptr)
+void JPS_Manager::updateJPSMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr, Eigen::Vector3d& center, nav_msgs::OccupancyGridPtr ocubptr, Vec3f _start_velocity_)
 {
   Vec3f center_map = center;  // state_.pos;
-
+  
+  hybridVel_ =  _start_velocity_;
+  
   mtx_jps_map_util.lock();
 
 
   map_util_->readMap(pclptr, cells_x_, cells_y_, cells_z_, factor_jps_ * res_, center_map, z_ground_, z_max_,
                      inflation_jps_);  // Map read
 
-  // hybrid_a_star_ptr_->setmap(ocubptr, cells_x_, cells_y_, cells_z_, factor_jps_ * res_); //map top hybrid a star
+  hybrid_a_star_ptr_->setmap(ocubptr, cells_x_, cells_y_, cells_z_, factor_jps_ * res_ ); //map top hybrid a star
 
   mtx_jps_map_util.unlock();
 }
@@ -170,39 +172,14 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
   bool valid_jps = planner_ptr_->plan(start, goal, 1, true);  // Plan from start to goal with heuristic weight=1, and
                                                               // using JPS (if false --> use A*)
 
-  // bool valid_HAS = hybrid_a_star_ptr_->plan(start, goal); //using hybrid a star planner
+  bool valid_HAS = hybrid_a_star_ptr_->plan(start, goal, hybridVel_); //using hybrid a star planner
 
   vec_Vecf<3> path;
   path.clear();
 
-//   if (valid_HAS == true)  // There is a solution
-//   {
-//     path = hybrid_a_star_ptr_->getPath();  // getpar_.RawPath() if you want the path with more corners (not "cleaned")
-//     if (path.size() > 1)
-//     {
-//       path[0] = start;
-//       path[path.size() - 1] = goal;  // force to start and end in the start and goal (and not somewhere in the voxel)
-//     }
-//     else
-//     {  // happens when start and goal are very near (--> same cell)
-//       vec_Vecf<3> tmp;
-//       tmp.push_back(start);
-//       tmp.push_back(goal);
-//       path = tmp;
-//     }
-//   }
-//   else
-//   {
-//     std::cout << "Hybrid A* didn't find a solution from " << start.transpose() << " to " << goal.transpose() << std::endl;
-//   }
-//   mtx_jps_map_util.unlock();
-
-//   *solved = valid_HAS;
-//   return path;
-// }
-  if (valid_jps == true)  // There is a solution
+  if (valid_HAS == true)  // There is a solution
   {
-    path = planner_ptr_->getPath();  // getpar_.RawPath() if you want the path with more corners (not "cleaned")
+    path = hybrid_a_star_ptr_->getPath();  // getpar_.RawPath() if you want the path with more corners (not "cleaned")
     if (path.size() > 1)
     {
       path[0] = start;
@@ -218,10 +195,35 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
   }
   else
   {
-    std::cout << "JPS didn't find a solution from" << start.transpose() << " to " << goal.transpose() << std::endl;
+    std::cout << "Hybrid A* didn't find a solution from " << start.transpose() << " to " << goal.transpose() << std::endl;
   }
   mtx_jps_map_util.unlock();
 
-  *solved = valid_jps;
+  *solved = valid_HAS;
   return path;
 }
+//   if (valid_jps == true)  // There is a solution
+//   {
+//     path = planner_ptr_->getPath();  // getpar_.RawPath() if you want the path with more corners (not "cleaned")
+//     if (path.size() > 1)
+//     {
+//       path[0] = start;
+//       path[path.size() - 1] = goal;  // force to start and end in the start and goal (and not somewhere in the voxel)
+//     }
+//     else
+//     {  // happens when start and goal are very near (--> same cell)
+//       vec_Vecf<3> tmp;
+//       tmp.push_back(start);
+//       tmp.push_back(goal);
+//       path = tmp;
+//     }
+//   }
+//   else
+//   {
+//     std::cout << "JPS didn't find a solution from" << start.transpose() << " to " << goal.transpose() << std::endl;
+//   }
+//   mtx_jps_map_util.unlock();
+
+//   *solved = valid_jps;
+//   return path;
+// }

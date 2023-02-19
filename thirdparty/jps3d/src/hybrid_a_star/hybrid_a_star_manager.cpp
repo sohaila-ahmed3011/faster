@@ -14,6 +14,10 @@ void Planner::setmap(nav_msgs::OccupancyGridPtr costMapPtr, int _x_size, int _y_
     // initialize cost map
     costMapCallBack(costMapPtr);
     //initialize grid graph parameters 
+    _x_size = _x_size * res / 2;
+    _y_size = _y_size * res / 2;
+    _z_size = _z_size * res / 2;
+
     _map_lower << -_x_size / 2.0, -_y_size / 2.0, 0.0;
     _map_upper << +_x_size / 2.0, +_y_size / 2.0, _z_size;
 
@@ -23,11 +27,17 @@ void Planner::setmap(nav_msgs::OccupancyGridPtr costMapPtr, int _x_size, int _y_
     _max_y_id = (int) (_y_size * _inv_map_resolution);
     _max_z_id = (int) (_z_size * _inv_map_resolution);
     
+      // std::cout<< "xyz_lower: " << _map_lower << std::endl;
+      // std::cout<< "xyz_upper: " << _map_upper << std::endl;
+      // std::cout<< "grid size: " <<  Vector3i(_max_x_id, _max_y_id, _max_z_id) << std::endl;
+      // std::cout<< "resolution: " << res << std::endl;
+
     //run only once
     if (initBool_){
       graph_ = std::make_shared<GridGraph3D>();
       _hybrid_a_star = std::make_shared<HybridAStar3D>();
-    //   std::cout<<"res "<<res << " | _max_x_id: "<<_max_x_id<<" | _max_y_id: "<<_max_y_id << std::endl;
+      // std::cout<<"res "<<res << " | _max_x_id: "<<_max_x_id<<" | _max_y_id: "<<_max_y_id << std::endl;
+      graph_->InitGridMap(_map_lower, _map_upper, Vector3i(_max_x_id, _max_y_id, _max_z_id), res);
       graph_->InitGridMap(res, _max_x_id, _max_y_id, params);
       _hybrid_a_star->setGraph(graph_);
       initBool_ = false;
@@ -35,24 +45,26 @@ void Planner::setmap(nav_msgs::OccupancyGridPtr costMapPtr, int _x_size, int _y_
 }
 
 
-// TODO change arg to take start goal from faster
-bool Planner::plan(Vec3f &start,  Vec3f &goal) {
+bool Planner::plan(Vec3f &start,  Vec3f &goal, Vec3f _start_velocity_) {
     Vec3f target_pt = goal;
-    _start_velocity = Vec3f(0, 0, 0);
     start[2] = 0;
-    goal[2] = 0;
+    target_pt[2] = 0;
+
     std::function<huristics_cost_t(Vec3f, Vec3f, Vec3f)> heuristic_optimal_bvp = &optimal_boundary_value_problem<Vec3f>;
-    TrajectoryStatePtr*** trajectory_lib = _hybrid_a_star->trajectoryLibrary(start, _start_velocity, target_pt, heuristic_optimal_bvp);
+    TrajectoryStatePtr*** trajectory_lib = _hybrid_a_star->trajectoryLibrary(start, _start_velocity_, target_pt, heuristic_optimal_bvp);
     bool solved_bool = _hybrid_a_star->searchPath(start, target_pt, heuristic_optimal_bvp);
     std::function<huristics_cost_t(RobotNode::Ptr,  RobotNode::Ptr)> heuristic = &calculate_euclidean_dis<RobotNode::Ptr>;
     
     if(graph_ != nullptr){
       graph_->reset(); 
     }
+    graph_->InitGridMap(_map_lower, _map_upper, Vector3i(_max_x_id, _max_y_id, _max_z_id), _map_resolution);
+    graph_->InitGridMap(_map_resolution, _max_x_id, _max_y_id, params);
+    setObstacles();
     _hybrid_a_star->setGraph(graph_);
 
     // auto path = _hybrid_a_star->getPath();
-    setObstacles();
+  
     return solved_bool;
 }
 
@@ -76,15 +88,15 @@ void Planner::setObstacles(){
             // data_reader << _cost_map_->data[y * _cost_map_->info.width + x] << "\n";
             // data_reader.close();
 
-            if (_cost_map_->data[y * _cost_map_->info.width + x] < 100) {
+            if (_cost_map_->data[y * _cost_map_->info.width + x] > 100) {
                 graph_->SetObstacle(w, h);
-                obsCount++;
+                // obsCount++;
             }
-            else{
-                freeCount++;
-            }
+            // else{
+            //     // freeCount++;
+            // }
         }
     }
-    std::cout<< obsCount << " / " << freeCount << std::endl;
+    // std::cout<< obsCount << " / " << freeCount << std::endl;
 }
 

@@ -188,6 +188,7 @@ private:
       MySyncPolicy;
   typedef message_filters::Synchronizer<MySyncPolicy> Sync;
   boost::shared_ptr<Sync> sync_;
+  Vec3f _start_velocity_;
 
   int actual_trajID_ = 0;
   nav_msgs::OccupancyGridPtr _cost_map_;

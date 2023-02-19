@@ -31,7 +31,7 @@ class Planner {
     public:
         Planner() = default;
         ~Planner() = default;
-        bool plan(Vec3f &start,  Vec3f &goal);
+        bool plan(Vec3f &start,  Vec3f &goal, Vec3f _start_velocity_);
         // void mapCallBack(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
         vec_E<Vec3f> getPath();
         void setObstacles();

@@ -40,7 +40,7 @@ public:
   vec_Vec3f vec_uo_;  // Vector that contains the unkown and occupied points
 
   // JPS
-  void updateJPSMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr, Eigen::Vector3d& center, nav_msgs::OccupancyGridPtr ocubptr);
+  void updateJPSMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr, Eigen::Vector3d& center, nav_msgs::OccupancyGridPtr ocubptr, Vec3f _start_velocity_);
   vec_Vecf<3> solveJPS3D(Vec3f& start, Vec3f& goal, bool* solved, int i);
   void setNumCells(int cells_x, int cells_y, int cells_z);
 
@@ -55,7 +55,8 @@ public:
   void setZGroundAndZMax(double z_ground, double z_max);
   void setVisual(bool visual);
   void setDroneRadius(double inflation_jps);
-
+  Vec3f hybridVel_;
+  
 private:
   double factor_jps_, res_, inflation_jps_, z_ground_, z_max_, drone_radius_;
   int cells_x_, cells_y_, cells_z_;

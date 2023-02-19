@@ -96,7 +96,8 @@ void Faster::createMoreVertexes(vec_Vecf<3>& path, double d)
   }
 }
 
-void Faster::updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_unk,  nav_msgs::OccupancyGridPtr costmap_msg_ptr)
+void Faster::updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_unk,  
+                      nav_msgs::OccupancyGridPtr costmap_msg_ptr, Vec3f _start_velocity_)
 {
   mtx_map.lock();
   mtx_unk.lock();
@@ -105,7 +106,7 @@ void Faster::updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::Poin
   pclptr_map_ = pclptr_map;
   pclptr_unk_ = pclptr_unk;
 
-  jps_manager_.updateJPSMap(pclptr_map_, state_.pos, costmap_msg_ptr);  // Update even where there are no points
+  jps_manager_.updateJPSMap(pclptr_map_, state_.pos, costmap_msg_ptr, _start_velocity_);  // Update even where there are no points
 
   if (pclptr_map_->width != 0 && pclptr_map_->height != 0)  // Point Cloud is not empty
   {
