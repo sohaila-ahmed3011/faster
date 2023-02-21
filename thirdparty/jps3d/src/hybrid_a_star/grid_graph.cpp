@@ -172,8 +172,8 @@ namespace hagen_planner
 
     template<typename State>
     bool GridGraph<State>::BeyondBoundary(const Vec2d &pt) const {
-        // return pt.x() < map_x_lower_ || pt.x() >= map_x_upper_ || pt.y() < map_y_lower_ || pt.y() >= map_y_upper_;
-        return true;
+        return pt.x() < map_x_lower_ || pt.x() >= map_x_upper_ || pt.y() < map_y_lower_ || pt.y() >= map_y_upper_;
+        //return true;
     }
 
 

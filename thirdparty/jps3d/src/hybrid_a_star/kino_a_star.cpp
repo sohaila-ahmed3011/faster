@@ -57,10 +57,8 @@ bool KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end
         }
 
         graph_->getNeighbors(trajectory_state_ptr, neighbors_ptr, neighbors_traj_state, discretize_step_);
-        // std::cout << "neighbors_ptr SIZE " << neighbors_ptr.size() << std::endl;
         for (unsigned int i = 0; i < neighbors_ptr.size(); ++i) {
             neighbor_node_ptr = neighbors_ptr[i];
-
             ///TODO: G score 
             double delta_score = (neighbor_node_ptr->robot_state_ - current_node_ptr->robot_state_).norm();
             if (neighbor_node_ptr->id_ == State::WOULD_LIKE) {

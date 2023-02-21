@@ -136,8 +136,8 @@ void JPS_Manager::updateJPSMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr, Eigen
   mtx_jps_map_util.lock();
 
 
-  map_util_->readMap(pclptr, cells_x_, cells_y_, cells_z_, factor_jps_ * res_, center_map, z_ground_, z_max_,
-                     inflation_jps_);  // Map read
+  // map_util_->readMap(pclptr, cells_x_, cells_y_, cells_z_, factor_jps_ * res_, center_map, z_ground_, z_max_,
+  //                    inflation_jps_);  // Map read
 
   hybrid_a_star_ptr_->setmap(ocubptr, cells_x_, cells_y_, cells_z_, factor_jps_ * res_ ); //map top hybrid a star
 
@@ -161,15 +161,14 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
   mtx_jps_map_util.lock();
 
   // Set start and goal free
-  const Veci<3> start_int = map_util_->floatToInt(start);
-  const Veci<3> goal_int = map_util_->floatToInt(goal);
+  // const Veci<3> start_int = map_util_->floatToInt(start);
+  // const Veci<3> goal_int = map_util_->floatToInt(goal);
 
-  map_util_->setFreeVoxelAndSurroundings(start_int, inflation_jps_);
-  map_util_->setFreeVoxelAndSurroundings(goal_int, inflation_jps_);
+  // map_util_->setFreeVoxelAndSurroundings(start_int, inflation_jps_);
+  // map_util_->setFreeVoxelAndSurroundings(goal_int, inflation_jps_);
 
-  planner_ptr_->setMapUtil(map_util_);  // Set collision checking function
-
-  bool valid_jps = planner_ptr_->plan(start, goal, 1, true);  // Plan from start to goal with heuristic weight=1, and
+  // planner_ptr_->setMapUtil(map_util_);  // Set collision checking function
+  // bool valid_jps = planner_ptr_->plan(start, goal, 1, true);  // Plan from start to goal with heuristic weight=1, and
                                                               // using JPS (if false --> use A*)
 
   bool valid_HAS = hybrid_a_star_ptr_->plan(start, goal, hybridVel_); //using hybrid a star planner
@@ -202,6 +201,8 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
   *solved = valid_HAS;
   return path;
 }
+
+
 //   if (valid_jps == true)  // There is a solution
 //   {
 //     path = planner_ptr_->getPath();  // getpar_.RawPath() if you want the path with more corners (not "cleaned")
