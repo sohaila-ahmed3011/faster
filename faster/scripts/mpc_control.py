@@ -1,36 +1,39 @@
+#!/usr/bin/env python
 from time import time
 import casadi as ca
 import numpy as np
 from casadi import sin, cos, pi
 import rospy
 import tf
+import math  
 from snapstack_msgs.msg import Goal, State
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, PoseStamped
 from mpc_tracking_controller import MPCDiffDriveControl 
 
 class MPCControl():
     def __init__(self, delta_t, min_error):
-
         print("Initializing the MPC controller")
-        self.pub_velocity = rospy.Publisher('jackal_velocity_controller/cmd_vel', Twist, queue_size=10, latch=True)
+        self.pub_velocity = rospy.Publisher('jackal_velocity_controller/cmd_vel', Twist, queue_size=1, latch=True)
         self.pubState = rospy.Publisher('state', State, queue_size=1, latch=False)
-        self.timer = rospy.Timer(rospy.Duration(0.1), self.execute_cb)
-
+        self.timer = rospy.Timer(rospy.Duration(0.05), self.execute_cb)
         self.i = 0
         self.set_q_init = None
         self.q = None 
-        self.r = 0.3 # Wheel radius
-        self.L = 1.25 # Axle length
-        self.D = 0.07 # Distance between the front front whell and rear axle
+        self.r = 0.098 # Wheel radius
+        self.L = 0.31 # Axle length
+        self.D = 0.262 # Distance between the front front whell and rear axle
         self.Ts = delta_t # Sampling time
         self.t = np.arange(0, 10, self.Ts) # Simulation time
         self.end_controller = False
-        # self.timer = rospy.Timer(rospy.Duration(self.Ts), self.timer_callback)
         self.odom_pose = None 
         self.error = None
         self.success = False 
         self.min_acceptable_error = min_error 
+        self.goal = Goal()
+        self.state = State()
+        self.target_pose =  np.array([0, 0, 0])
+        # self.vehicle_pose = PoseStamped()
 
     def send_vel(self, v, w):
         msg = Twist()
@@ -67,6 +70,7 @@ class MPCControl():
         xwrap = np.remainder(x, 2*np.pi)
         mask = np.abs(xwrap)>np.pi
         xwrap[mask] -= 2*np.pi * np.sign(xwrap[mask])
+
         return xwrap[0]
     
     def set_pose(self, msg):
@@ -75,37 +79,52 @@ class MPCControl():
             self.set_q_init = np.array([msg.pose.pose.position.x, msg.pose.pose.position.y, yaw])
             self.q = self.set_q_init
         self.odom_pose = np.array([msg.pose.pose.position.x, msg.pose.pose.position.y, yaw])
-    
+        # self.vehicle_pose = msg 
+
+        self.state = State()
+        self.state.pos.x = msg.pose.pose.position.x
+        self.state.pos.y = msg.pose.pose.position.y
+        self.state.quat = msg.pose.pose.orientation
+        self.state.vel = msg.twist.twist.linear
+        self.state.w = msg.twist.twist.angular
+        self.pubState.publish(self.state)
+
+        # print("states: ", self.state.pos.x, self.state.pos.y)
+        # print("target: ", self.target_pose)
+
     def mpc_planner_init(self):
-        self.mpc_solver = MPCDiffDriveControl(self.Ts, 20, 1.0)
+        self.mpc_solver = MPCDiffDriveControl(self.Ts, 20, 2.2)
         if(self.q is None):
             print("Still robot current pose is not set")
         else:
             self.mpc_solver.init_regulator(self.q, self.target_pose)
         
-    def move_one_step(self, ):
+    def move_one_step(self):
         if(self.mpc_solver.init_reg):
             u, _ = self.mpc_solver.update(self.odom_pose)
             v = u[0]
             w = u[1]
             self.send_vel(v, w)
+            
         elif(self.q is not None):
             self.mpc_solver.init_regulator(self.q, self.target_pose)
         
         if(self.odom_pose is not None):
-            self.error = np.linalg.norm(self.odom_pose-self.target_pose)
-            print("Error: ", self.error, " current state : " , self.odom_pose, "target state: ", self.target_pose)
-            if(self.error< self.min_acceptable_error):
+            self.error = np.linalg.norm(self.odom_pose - self.target_pose)
+            # print("Error: ", self.error, " current state : " , self.odom_pose, "target state: ", self.target_pose)
+            print("error: ", self.error)
+            if(self.error < self.min_acceptable_error):
+                # self.init_reg = False 
+                self.send_vel(0, 0)
                 self.success = True 
+                self.end_controller = True
         
     def goalCB(self, goal):
-        # _, _, yaw = self.euler_from_quaternion(goal.target_pose.pose.orientation)
-        # self.target_pose =  np.array([goal.target_pose.pose.position.x, goal.target_pose.pose.position.y, yaw])
-        self.target_pose = goal
-        # self.goal_initialized=True
+        self.goal = goal
+        yaw = math.atan2(self.goal.p.y - self.odom_pose[1], self.goal.p.x - self.odom_pose[0])
+        self.target_pose =  np.array([self.goal.p.x, self.goal.p.y, yaw])
 
-
-    def execute_cb(self):
+    def execute_cb(self, goal):
         # rospy.loginfo('%s: Executing, moving to a target location %i,%i with current error %i' % 
         #             ( target_pose[0], target_pose[1])
         self.mpc_planner_init()
@@ -113,14 +132,10 @@ class MPCControl():
 
 
 def startNode():
-    controller = MPCControl()
-
-    #Subscribers
-    #self.sub_state = rospy.Subscriber("state", State, self.stateCB, queue_size=1)
+    controller = MPCControl(delta_t=0.05, min_error=0.3)
 
     rospy.Subscriber("goal", Goal, controller.goalCB, queue_size=1)
     rospy.Subscriber("ground_truth/state", Odometry, controller.set_pose, queue_size=1) #jackal_velocity_controller/odom   # odometry/local_filtered
-
 
     rospy.spin()
 
@@ -133,7 +148,7 @@ if __name__ == '__main__':
             rospy.logfatal("Need to specify namespace as vehicle name.")
             rospy.logfatal("This is tyipcally accomplished in a launch file.")
         else:
-            print "Starting node for: " + ns
+            print ("Starting node for: "+ ns)
             startNode()
     except rospy.ROSInterruptException:
         pass

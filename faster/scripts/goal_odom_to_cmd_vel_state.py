@@ -204,7 +204,7 @@ class GoalToCmdVel:
         return x-np.pi   
 
     def printAngle(self, value, name):
-        print name, '{:.3f}'.format(value), " rad (",'{:.3f}'.format(value*180/3.14), " deg) " 
+        print( name, '{:.3f}'.format(value), " rad (",'{:.3f}'.format(value*180/3.14), " deg) " )
 
 
 
@@ -230,7 +230,7 @@ if __name__ == '__main__':
             rospy.logfatal("Need to specify namespace as vehicle name.")
             rospy.logfatal("This is tyipcally accomplished in a launch file.")
         else:
-            print "Starting node for: " + ns
+            print ("Starting node for: " + ns)
             startNode()
     except rospy.ROSInterruptException:
         pass
