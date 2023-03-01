@@ -112,12 +112,20 @@ class MPCControl():
         if(self.odom_pose is not None):
             self.error = np.linalg.norm(self.odom_pose - self.target_pose)
             # print("Error: ", self.error, " current state : " , self.odom_pose, "target state: ", self.target_pose)
-            print("error: ", self.error)
-            # with open('mpc_error.txt', 'w') as file:
-            #     file.write(self.error,'\n')
-            f = open('mpc_error.txt', 'a')
-            f.write(str(self.error)+"\n")
-            f.close()
+            # print("error: ", self.error)
+
+            err = open('/home/ros/ros_ws/src/faster/faster/scripts/mpc_error.txt', 'a')
+            err.write(str(self.error)+"\n")
+            err.close()
+
+            tar = open('/home/ros/ros_ws/src/faster/faster/scripts/target_pose.txt', 'a')
+            tar.write(str(self.target_pose)+"\n")
+            tar.close()
+
+            od = open('/home/ros/ros_ws/src/faster/faster/scripts/odom_pose.txt', 'a')
+            od.write(str(self.odom_pose)+"\n")
+            od.close()
+
             if(self.error < self.min_acceptable_error):
                 # self.init_reg = False 
                 self.send_vel(0, 0)
