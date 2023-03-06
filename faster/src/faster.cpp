@@ -368,17 +368,23 @@ void Faster::multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Po
                           double ra,vec_Vecf<3> &JPS_whole, vec_Vecf<3> &JPS_in, vec_Vecf<3> &JPSk){  
 
   //////////////////////////////////////////////////////////////////////////
-  ///////////////// Solve with GUROBI Whole trajectory /////////////////////
+  ///////////////// Generate  E, E1, and E2 points /////////////////////////
   //////////////////////////////////////////////////////////////////////////
-
     deleteVertexes(JPS_whole, par_.max_poly_whole);
     E.pos = JPS_whole[JPS_whole.size() - 1];
 
+    // Generate two altenative points dependent on goal points
     state E1, E2;
-    double a = ra*cos(30*3.14159/180);
-    double b = sqrt(ra*ra - a*a);
-    E1.setPos( E.pos[0]+a, E.pos[1]+b,E.pos[2]);
-    E2.setPos( E.pos[0]+a, E.pos[1]-b,E.pos[2]);
+    int shiftDeg  = 30;  //angle between goal and other two points in degrees
+    double shiftRad  = shiftDeg * (3.1415 / 180);
+    Eigen::Vector3d currPos = state_.pos;
+    
+    double currTheta = atan2(E.pos[1] - currPos[1], E.pos[0] - currPos[0]);
+    double theta1 = currTheta - shiftRad; //E1
+    double theta2 = currTheta + shiftRad; //E2
+
+    E1.setPos( currPos[0]+ ra * cos(theta1), currPos[0]+ ra * sin(theta1), E.pos[2]);
+    E2.setPos( currPos[0]+ ra * cos(theta2), currPos[0]+ ra * sin(theta2), E.pos[2]);
 
     bool solvedjps1;
     vec_E<Polyhedron<3>> poly_tmp_1;
