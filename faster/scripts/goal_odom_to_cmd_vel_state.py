@@ -103,6 +103,10 @@ class GoalToCmdVel:
 
         self.state_initialized=True;
 
+        odom = open('/home/ros/ros_ws/src/faster/faster/scripts/odom.txt', 'a')
+        odom.write(str(self.state)+"\n")
+        odom.close()
+
     def goalCB(self, goal):
 
         self.goal=goal;
@@ -118,6 +122,9 @@ class GoalToCmdVel:
 
         self.goal_initialized=True;
 
+        goal = open('/home/ros/ros_ws/src/faster/faster/scripts/goal.txt', 'a')
+        goal.write(str(self.goal)+"\n")
+        goal.close()
 
     def cmdVelCB(self, goal):
         if (self.state_initialized==False or self.goal_initialized==False):
@@ -144,6 +151,10 @@ class GoalToCmdVel:
           forward=-1
 
         dist_error = forward * math.sqrt( (x - self.state.pos.x)**2 + (y - self.state.pos.y)**2  );
+
+        err = open('/home/ros/ros_ws/src/faster/faster/scripts/PD_error.txt', 'a')
+        err.write(str(dist_error)+"\n")
+        err.close()
 
         if (abs(dist_error)<0.03):
           alpha=0;
