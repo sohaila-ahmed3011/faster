@@ -105,32 +105,37 @@ class MPCControl():
             v = u[0]
             w = u[1]
             self.send_vel(v, w)
-            
         elif(self.q is not None):
             self.mpc_solver.init_regulator(self.q, self.target_pose)
         
         if(self.odom_pose is not None):
             self.error = np.linalg.norm(self.odom_pose - self.target_pose)
-            # print("Error: ", self.error, " current state : " , self.odom_pose, "target state: ", self.target_pose)
-            # print("error: ", self.error)
 
-            err = open('/home/ros/ros_ws/src/faster/faster/scripts/mpc_error.txt', 'a')
-            err.write(str(self.error)+"\n")
-            err.close()
+            self.odom_pose_2D =  np.array([self.odom_pose[0], self.odom_pose[1]])
+            self.target_pose_2D =  np.array([self.target_pose[0], self.target_pose[1]])
+            self.pos_error = np.linalg.norm(self.odom_pose_2D - self.target_pose_2D)
+            
+            print("Error: ", self.error, " current state : " , self.odom_pose, "target state: ", self.target_pose)
+            print("Position error: ", self.pos_error)
 
-            tar = open('/home/ros/ros_ws/src/faster/faster/scripts/target_pose.txt', 'a')
-            tar.write(str(self.target_pose)+"\n")
-            tar.close()
+            # err = open('/home/ros/ros_ws/src/faster/faster/scripts/mpc_error.txt', 'a')
+            # err.write(str(self.error)+"\n")
+            # err.close()
 
-            od = open('/home/ros/ros_ws/src/faster/faster/scripts/odom_pose.txt', 'a')
-            od.write(str(self.odom_pose)+"\n")
-            od.close()
+            # tar = open('/home/ros/ros_ws/src/faster/faster/scripts/target_pose.txt', 'a')
+            # tar.write(str(self.target_pose)+"\n")
+            # tar.close()
+
+            # od = open('/home/ros/ros_ws/src/faster/faster/scripts/odom_pose.txt', 'a')
+            # od.write(str(self.odom_pose)+"\n")
+            # od.close()
 
             if(self.error < self.min_acceptable_error):
-                # self.init_reg = False 
-                self.send_vel(0, 0)
                 self.success = True 
-                self.end_controller = True
+
+                # self.init_reg = False 
+                # self.send_vel(0, 0)
+                # self.end_controller = True
         
     def goalCB(self, goal):
         self.goal = goal
@@ -143,9 +148,14 @@ class MPCControl():
         self.mpc_planner_init()
         self.move_one_step()
 
+        if (self.success == True):
+            self.success = False
+            # self.init_reg = False
+            
+
 
 def startNode():
-    controller = MPCControl(delta_t=0.05, min_error=0.3)
+    controller = MPCControl(delta_t=0.05, min_error=0.2)
 
     rospy.Subscriber("goal", Goal, controller.goalCB, queue_size=1)
     rospy.Subscriber("ground_truth/state", Odometry, controller.set_pose, queue_size=1) #jackal_velocity_controller/odom   # odometry/local_filtered
