@@ -43,4 +43,4 @@ gurobi_verbose: 0 #Verbosity of Gurobi. 0 or 1
 
 use_faster: true  #TODO (this param doesn't work yet) if false, it will plan only in free space
 
-is_ground_robot: true
+is_ground_robot: true  
