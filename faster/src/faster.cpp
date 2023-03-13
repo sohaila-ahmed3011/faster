@@ -383,8 +383,8 @@ void Faster::multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Po
     double theta1 = currTheta - shiftRad; //E1
     double theta2 = currTheta + shiftRad; //E2
 
-    E1.setPos( currPos[0]+ ra * cos(theta1), currPos[0]+ ra * sin(theta1), E.pos[2]);
-    E2.setPos( currPos[0]+ ra * cos(theta2), currPos[0]+ ra * sin(theta2), E.pos[2]);
+    E1.setPos( currPos[0]+ ra * cos(theta1), currPos[1]+ ra * sin(theta1), E.pos[2]);
+    E2.setPos( currPos[0]+ ra * cos(theta2), currPos[1]+ ra * sin(theta2), E.pos[2]);
 
     bool solvedjps1;
     vec_E<Polyhedron<3>> poly_tmp_1;
