@@ -28,6 +28,8 @@ class JPS_Manager
 public:
   JPS_Manager();
 
+  JPS_Manager(const JPS_Manager& other);
+
   std::mutex mtx_jps_map_util;  // mutex for map_util_ and planner_ptr_
 
   std::shared_ptr<JPS::VoxelMapUtil> map_util_;
