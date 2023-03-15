@@ -59,22 +59,6 @@ Faster::Faster(parameters par) : par_(par)
   // jps_manager_.setVisual(par_.visual);
   jps_manager_.setDroneRadius(par_.drone_radius);
 
-  // jps_manager_1.setNumCells((int)par_.wdx / par_.res, (int)par_.wdy / par_.res, (int)par_.wdz / par_.res);
-  // jps_manager_1.setFactorJPS(par_.factor_jps);
-  // jps_manager_1.setResolution(par_.res);
-  // jps_manager_1.setInflationJPS(par_.inflation_jps);
-  // jps_manager_1.setZGroundAndZMax(par_.z_ground, par_.z_max);
-  // // jps_manager_.setVisual(par_.visual);
-  // jps_manager_1.setDroneRadius(par_.drone_radius);
-
-  // jps_manager_2.setNumCells((int)par_.wdx / par_.res, (int)par_.wdy / par_.res, (int)par_.wdz / par_.res);
-  // jps_manager_2.setFactorJPS(par_.factor_jps);
-  // jps_manager_2.setResolution(par_.res);
-  // jps_manager_2.setInflationJPS(par_.inflation_jps);
-  // jps_manager_2.setZGroundAndZMax(par_.z_ground, par_.z_max);
-  // // jps_manager_.setVisual(par_.visual);
-  // jps_manager_2.setDroneRadius(par_.drone_radius);
-
   double max_values[3] = { par_.v_max, par_.a_max, par_.j_max };
 
   // Setup of sg_whole_
@@ -135,8 +119,7 @@ void Faster::updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::Poin
   pclptr_unk_ = pclptr_unk;
 
   jps_manager_.updateJPSMap(pclptr_map_, state_.pos);  // Update even where there are no points
-  // jps_manager_1.updateJPSMap(pclptr_map_, state_.pos);  // Update even where there are no points
-  // jps_manager_2.updateJPSMap(pclptr_map_, state_.pos);  // Update even where there are no points
+
 
 
   if (pclptr_map_->width != 0 && pclptr_map_->height != 0)  // Point Cloud is not empty
@@ -144,8 +127,7 @@ void Faster::updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::Poin
     kdtree_map_.setInputCloud(pclptr_map_);
     kdtree_map_initialized_ = 1;
     jps_manager_.vec_o_ = pclptr_to_vec(pclptr_map_);
-    // jps_manager_1.vec_o_ = pclptr_to_vec(pclptr_map_);
-    // jps_manager_2.vec_o_ = pclptr_to_vec(pclptr_map_);
+
 
 
   }
@@ -167,13 +149,6 @@ void Faster::updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::Poin
     jps_manager_.vec_uo_.insert(jps_manager_.vec_uo_.end(), jps_manager_.vec_o_.begin(),
                                 jps_manager_.vec_o_.end());  // append known space
 
-  //   jps_manager_1.vec_uo_ = pclptr_to_vec(pclptr_unk_);  // insert unknown space
-  //   jps_manager_1.vec_uo_.insert(jps_manager_1.vec_uo_.end(), jps_manager_1.vec_o_.begin(),
-  //                               jps_manager_1.vec_o_.end());  // append known space
-
-  //   jps_manager_2.vec_uo_ = pclptr_to_vec(pclptr_unk_);  // insert unknown space
-  //   jps_manager_2.vec_uo_.insert(jps_manager_2.vec_uo_.end(), jps_manager_2.vec_o_.begin(),
-  //                               jps_manager_2.vec_o_.end());  // append known space
   }
 
   mtx_map.unlock();
@@ -360,7 +335,6 @@ bool Faster::init(){
 
  multi_plan_return Faster::multi_plan_any_point(state A, state &E, bool &solvedjps, vec_E<Polyhedron<3>> &poly_tmp, 
                                   std::vector<LinearConstraint3D> &l_constraints_whole_, JPS_Manager &jps_manager_){
-                                     Eigen::Vector3d start(start_sent(0), start_sent(1), std::max(start_sent(2), 0.0));
 
   // Eigen::Vector3d goal(goal_sent(0), goal_sent(1), std::max(goal_sent(2), 0.0));
 
@@ -418,7 +392,7 @@ void Faster::multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Po
 
     // Generate two altenative points dependent on goal points
     state E1, E2;
-    int shiftDeg  = 30;  //angle between goal and other two points in degrees
+    int shiftDeg  = 10;  //angle between goal and other two points in degrees
     double shiftRad  = shiftDeg * (3.1415 / 180);
     Eigen::Vector3d currPos = state_.pos;
     
@@ -434,6 +408,7 @@ void Faster::multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Po
     std::vector<LinearConstraint3D> l_constraints_whole_1;  // Polytope (Linear) constraints for E1
 
     bool solvedjps2;
+    vec_E<Polyhedron<3>> poly_tmp_2;
     std::vector<LinearConstraint3D> l_constraints_whole_2;  // Polytope (Linear) constraints for E2
 
   //////////////////////////////////////////////////////////////////////////
@@ -805,29 +780,6 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   
   std::cout << bold << blue << "Replanning took " << replanCB_t.ElapsedMs() << " ms" << reset << std::endl;
   
-  
-  
-  }else if (option == 2){
-    if (initiate_time){
-        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi_thread.txt", std::ofstream::out | std::ofstream::trunc);
-        time_logger.close();
-        initiate_time = false;
-      }
-  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi_thread.txt", std::ios_base::app);
-  time_logger << replanCB_t.ElapsedMs() << "\n";
-  time_logger.close();
-  }
-
-  }else if (option == 2){
-    if (initiate_time){
-        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi_thread.txt", std::ofstream::out | std::ofstream::trunc);
-        time_logger.close();
-        initiate_time = false;
-      }
-  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi_thread.txt", std::ios_base::app);
-  time_logger << replanCB_t.ElapsedMs() << "\n";
-  time_logger.close();
-  }
   return;
 }
 
@@ -846,6 +798,7 @@ bool Faster::appendToPlan(int k_end_whole, const std::vector<state>& whole, int 
 
   bool output;
   int plan_size = plan_.size();
+
   /*  std::cout << "plan_.size()= " << plan_.size() << std::endl;
     std::cout << "plan_size - k_end_whole = " << plan_size - k_end_whole << std::endl;*/
   if ((plan_size - 1 - k_end_whole) < 0)
