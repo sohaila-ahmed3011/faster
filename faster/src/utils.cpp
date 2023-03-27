@@ -1114,11 +1114,15 @@ Eigen::Vector3d projectPointToBox(Eigen::Vector3d& P1, Eigen::Vector3d& P2, doub
   return inters;
 }
 
-void deleteVertexes(vec_Vecf<3>& JPS_path, int max_value)
+void deleteVertexes(vec_Vecf<3>& JPS_path, int max_value, int num_segments)
 {
+  if (num_segments !=0) // change number of jps points based on the path type (main or secondary)
+  {
+    max_value = num_segments;
+  }
   if (JPS_path.size() > max_value + 1)  // If I have more than (max_value + 1) vertexes
   {
     JPS_path.erase(JPS_path.begin() + max_value + 1,
-                   JPS_path.end());  // Force JPS to have less than max_value elements
+                  JPS_path.end());  // Force JPS to have less than max_value elements
   }
 }

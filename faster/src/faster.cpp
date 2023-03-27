@@ -336,28 +336,6 @@ bool Faster::init(){
  multi_plan_return Faster::multi_plan_any_point(state A, state &E, bool &solvedjps, vec_E<Polyhedron<3>> &poly_tmp, 
                                   std::vector<LinearConstraint3D> &l_constraints_whole_, JPS_Manager &jps_manager_){
 
-  // Eigen::Vector3d goal(goal_sent(0), goal_sent(1), std::max(goal_sent(2), 0.0));
-
-  // Vec3f originalStart = start;
-
-  // pcl::PointXYZ pcl_start = eigenPoint2pclPoint(start);
-  // pcl::PointXYZ pcl_goal = eigenPoint2pclPoint(goal);
-  // const Veci<3> start_int = jps_manager_.map_util_->floatToInt(start);
-  // const Veci<3> goal_int = jps_manager_.map_util_->floatToInt(goal);
-
-  // jps_manager_.map_util_->setFreeVoxelAndSurroundings(start_int, inflation_jps_);
-  // jps_manager_.map_util_->setFreeVoxelAndSurroundings(goal_int, inflation_jps_);
-
-  //  // Set start and goal free
-  // const Veci<3> start_int = jps_manager_.map_util_->floatToInt(start);
-  // const Veci<3> goal_int = jps_manager_.map_util_->floatToInt(goal);
-
-  // map_util_->setFreeVoxelAndSurroundings(start_int, inflation_jps_);
-  // map_util_->setFreeVoxelAndSurroundings(goal_int, inflation_jps_);
-
-  // planner_ptr_->setMapUtil(map_util_);  // Set collision checking function
-
-
   vec_Vecf<3> JPSk = jps_manager_.solveJPS3D(A.pos, E.pos, &solvedjps, 1);
   multi_plan_return return_;
   if (solvedjps == false)
@@ -371,7 +349,7 @@ bool Faster::init(){
   createMoreVertexes(JPS_in, par_.dist_max_vertexes);
 
   vec_Vecf<3> JPS_whole = JPS_in;
-  deleteVertexes(JPS_whole, par_.max_poly_whole);
+  deleteVertexes(JPS_whole, par_.max_poly_whole, 1); // generate polys for secondary paths 
   E.pos = JPS_whole[JPS_whole.size() - 1];
   jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_tmp);
 
