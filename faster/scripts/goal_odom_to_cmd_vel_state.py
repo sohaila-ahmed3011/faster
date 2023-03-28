@@ -149,6 +149,7 @@ class GoalToCmdVel:
           alpha=0;
 
         vel_norm=LA.norm(np.array([self.goal.v.x, self.goal.v.y, self.goal.v.z]));
+        
 
         if (abs(dist_error)<0.10 and vel_norm<0.05): #The robot is just yawing to orient with respect to the goal
 
@@ -193,6 +194,17 @@ class GoalToCmdVel:
         # print "twist.angular.z", twist.angular.z
 
         # twist.linear.x=self.Kp*(goal.p.x - self.state.pos.x);
+
+        target_pose = np.array([self.goal.p.x, self.goal.p.y, self.goal.p.z])
+        odom_pose = np.array([self.state.pos.x, self.state.pos.y, self.state.pos.z])
+
+        tar = open('/home/ros/ros_ws/src/faster/faster/scripts/target_pose.txt', 'a')
+        tar.write(str(target_pose)+"\n")
+        tar.close()
+
+        od = open('/home/ros/ros_ws/src/faster/faster/scripts/odom_pose.txt', 'a')
+        od.write(str(odom_pose)+"\n")
+        od.close()
 
         self.pubCmdVel.publish(twist)
 

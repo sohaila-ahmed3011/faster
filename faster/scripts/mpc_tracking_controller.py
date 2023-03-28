@@ -38,9 +38,9 @@ class MPCDiffDriveControl():
         X = ca.SX.sym('X', self.n_status, self.N+1)
 
         Q = ca.DM.zeros(3,3)
-        Q[0,0] = 1
-        Q[1,1] = 1
-        Q[2,2] = 0.1
+        Q[0,0] = 0.7
+        Q[1,1] = 0.7
+        Q[2,2] = 0.09
        
         R = ca.DM.zeros(2,2)
         R[0,0] = 0.05

@@ -122,13 +122,13 @@ class MPCControl():
             # err.write(str(self.error)+"\n")
             # err.close()
 
-            # tar = open('/home/ros/ros_ws/src/faster/faster/scripts/target_pose.txt', 'a')
-            # tar.write(str(self.target_pose)+"\n")
-            # tar.close()
+            tar = open('/home/ros/ros_ws/src/faster/faster/scripts/target_pose.txt', 'a')
+            tar.write(str(self.target_pose)+"\n")
+            tar.close()
 
-            # od = open('/home/ros/ros_ws/src/faster/faster/scripts/odom_pose.txt', 'a')
-            # od.write(str(self.odom_pose)+"\n")
-            # od.close()
+            od = open('/home/ros/ros_ws/src/faster/faster/scripts/odom_pose.txt', 'a')
+            od.write(str(self.odom_pose)+"\n")
+            od.close()
 
             if(self.error < self.min_acceptable_error):
                 self.success = True 
