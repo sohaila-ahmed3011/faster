@@ -120,11 +120,16 @@ void Faster::updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::Poin
 
   jps_manager_.updateJPSMap(pclptr_map_, state_.pos);  // Update even where there are no points
 
+
+
   if (pclptr_map_->width != 0 && pclptr_map_->height != 0)  // Point Cloud is not empty
   {
     kdtree_map_.setInputCloud(pclptr_map_);
     kdtree_map_initialized_ = 1;
     jps_manager_.vec_o_ = pclptr_to_vec(pclptr_map_);
+
+
+
   }
   else
   {
@@ -143,6 +148,7 @@ void Faster::updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::Poin
     jps_manager_.vec_uo_ = pclptr_to_vec(pclptr_unk_);  // insert unknown space
     jps_manager_.vec_uo_.insert(jps_manager_.vec_uo_.end(), jps_manager_.vec_o_.begin(),
                                 jps_manager_.vec_o_.end());  // append known space
+
   }
 
   mtx_map.unlock();
@@ -306,23 +312,11 @@ bool Faster::initialized()
   return true;
 }
 
-typedef boost::packaged_task<multi_plan_return> task_t;
-typedef boost::shared_ptr<task_t> ptask_t;
-std::vector<boost::shared_future<multi_plan_return>> pending_data;
-boost::asio::io_service ioService;
-boost::thread_group threadpool;
-std::unique_ptr<boost::asio::io_service::work> service_work;
+void Faster::push_job(Faster * worker, state A, state &E, bool &solvedjps, vec_E<Polyhedron<3>> &poly_tmp, 
+                                  std::vector<LinearConstraint3D> &l_constraints_whole_, JPS_Manager &jps_manager_) {
 
-//0 for single point, 1 for multi points, 2 for multi thread
-int option {1};
-bool initiate_threads {true}; // flag for the threads
-bool initiate_time {true}; // flag for time files
-
-
-void Faster::push_job(Faster * worker,state A, state &E, bool &solvedjps, vec_E<Polyhedron<3>> &poly_tmp, 
-                                  std::vector<LinearConstraint3D> &l_constraints_whole_) {
-
-  ptask_t task = boost::make_shared<task_t>(boost::bind(&Faster::multi_plan_any_point, worker, A, E, solvedjps, poly_tmp, l_constraints_whole_));
+  ptask_t task = boost::make_shared<task_t>(boost::bind(&Faster::multi_plan_any_point, worker, A, boost::ref(E), boost::ref(solvedjps), 
+                                            boost::ref(poly_tmp), boost::ref(l_constraints_whole_), boost::ref(jps_manager_)));
   boost::shared_future<multi_plan_return> fut(task->get_future());
   pending_data.push_back(fut);
   ioService.post(boost::bind(&task_t::operator(), task));
@@ -340,7 +334,30 @@ bool Faster::init(){
 }
 
  multi_plan_return Faster::multi_plan_any_point(state A, state &E, bool &solvedjps, vec_E<Polyhedron<3>> &poly_tmp, 
-                                  std::vector<LinearConstraint3D> &l_constraints_whole_){
+                                  std::vector<LinearConstraint3D> &l_constraints_whole_, JPS_Manager &jps_manager_){
+
+  // Eigen::Vector3d goal(goal_sent(0), goal_sent(1), std::max(goal_sent(2), 0.0));
+
+  // Vec3f originalStart = start;
+
+  // pcl::PointXYZ pcl_start = eigenPoint2pclPoint(start);
+  // pcl::PointXYZ pcl_goal = eigenPoint2pclPoint(goal);
+  // const Veci<3> start_int = jps_manager_.map_util_->floatToInt(start);
+  // const Veci<3> goal_int = jps_manager_.map_util_->floatToInt(goal);
+
+  // jps_manager_.map_util_->setFreeVoxelAndSurroundings(start_int, inflation_jps_);
+  // jps_manager_.map_util_->setFreeVoxelAndSurroundings(goal_int, inflation_jps_);
+
+  //  // Set start and goal free
+  // const Veci<3> start_int = jps_manager_.map_util_->floatToInt(start);
+  // const Veci<3> goal_int = jps_manager_.map_util_->floatToInt(goal);
+
+  // map_util_->setFreeVoxelAndSurroundings(start_int, inflation_jps_);
+  // map_util_->setFreeVoxelAndSurroundings(goal_int, inflation_jps_);
+
+  // planner_ptr_->setMapUtil(map_util_);  // Set collision checking function
+
+
   vec_Vecf<3> JPSk = jps_manager_.solveJPS3D(A.pos, E.pos, &solvedjps, 1);
   multi_plan_return return_;
   if (solvedjps == false)
@@ -365,7 +382,7 @@ bool Faster::init(){
  }
 
 void Faster::multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Polyhedron<3>> &poly_whole_out,
-                          double ra,vec_Vecf<3> &JPS_whole, vec_Vecf<3> &JPS_in, vec_Vecf<3> &JPSk){  
+                          double ra, vec_Vecf<3> &JPS_whole, vec_Vecf<3> &JPS_in, vec_Vecf<3> &JPSk){  
 
   //////////////////////////////////////////////////////////////////////////
   ///////////////// Generate  E, E1, and E2 points /////////////////////////
@@ -375,7 +392,7 @@ void Faster::multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Po
 
     // Generate two altenative points dependent on goal points
     state E1, E2;
-    int shiftDeg  = 30;  //angle between goal and other two points in degrees
+    int shiftDeg  = 10;  //angle between goal and other two points in degrees
     double shiftRad  = shiftDeg * (3.1415 / 180);
     Eigen::Vector3d currPos = state_.pos;
     
@@ -399,14 +416,17 @@ void Faster::multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Po
   //////////////////////////////////////////////////////////////////////////
 
     if (option == 2){
+      // MyTimer check1(true);
       // initiate the threads only once
       if (initiate_threads){
         Faster::init();
         initiate_threads = false;
       }
-    
-      push_job(this, A, E1, solvedjps1, poly_tmp_1, l_constraints_whole_1);
-      push_job(this, A, E2, solvedjps2, poly_tmp_2, l_constraints_whole_2);
+      
+      JPS_Manager jps_manager_1 = jps_manager_;
+      JPS_Manager jps_manager_2 = jps_manager_;
+      push_job(this, A, E1, solvedjps1, poly_tmp_1, l_constraints_whole_1, jps_manager_1);
+      push_job(this, A, E2, solvedjps2, poly_tmp_2, l_constraints_whole_2, jps_manager_2);
 
       boost::wait_for_all(pending_data.begin(), pending_data.end());
       jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
@@ -416,17 +436,18 @@ void Faster::multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Po
         l_constraints_whole_.insert(l_constraints_whole_.end(), result.get().constraints.begin(), result.get().constraints.end());
       }
       pending_data.clear();
-
+      // std::cout << bold << blue << "multi  thread took " << check1.ElapsedMs() << " ms" << reset << std::endl;
     }
     else if(option == 1){
-
-      multi_plan_any_point(A, E1, solvedjps1, poly_tmp_1, l_constraints_whole_1);
-      multi_plan_any_point(A, E2, solvedjps2, poly_tmp_2, l_constraints_whole_2);
+      // MyTimer check2(true);
+      multi_plan_any_point(A, E1, solvedjps1, poly_tmp_1, l_constraints_whole_1, jps_manager_);
+      multi_plan_any_point(A, E2, solvedjps2, poly_tmp_2, l_constraints_whole_2, jps_manager_);
       jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
       poly_whole_out.insert(poly_whole_out.end(), poly_tmp_1.begin(), poly_tmp_1.end());
       poly_whole_out.insert(poly_whole_out.end(), poly_tmp_2.begin(), poly_tmp_2.end());
       l_constraints_whole_.insert(l_constraints_whole_.end(), l_constraints_whole_1.begin(), l_constraints_whole_1.end());
       l_constraints_whole_.insert(l_constraints_whole_.end(), l_constraints_whole_2.begin(), l_constraints_whole_2.end());
+      // std::cout << bold << blue << "single thread took " << check2.ElapsedMs() << " ms" << reset << std::endl;
     }
     
    }
@@ -553,7 +574,7 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
     // Solve with Gurobi
     MyTimer whole_gurobi_t(true);
     bool solved_whole = sg_whole_.genNewTraj();
-
+    std::cout << bold << green << "whole_gurobi_t took " << whole_gurobi_t.ElapsedMs() << " ms" << reset << std::endl;
     if (solved_whole == false)
     {
       std::cout << bold << red << "No solution found for the whole trajectory" << reset << std::endl;
@@ -574,6 +595,37 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
     sg_whole_.X_temp_ = dummy_vector;
   }
 
+
+  if (option == 0){
+    if (initiate_time){
+        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_single_point.txt", std::ofstream::out | std::ofstream::trunc);
+        time_logger.close();
+        initiate_time = false;
+      }
+  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_single_point.txt", std::ios_base::app);
+  time_logger << replanCB_t.ElapsedMs() << "\n";
+  time_logger.close();
+  
+  }else if (option == 1){
+    if (initiate_time){
+        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi.txt", std::ofstream::out | std::ofstream::trunc);
+        time_logger.close();
+        initiate_time = false;
+      }
+  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi.txt", std::ios_base::app);
+  time_logger << replanCB_t.ElapsedMs() << "\n";
+  time_logger.close();
+  
+  }else if (option == 2){
+    if (initiate_time){
+        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi_thread.txt", std::ofstream::out | std::ofstream::trunc);
+        time_logger.close();
+        initiate_time = false;
+      }
+  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi_thread.txt", std::ios_base::app);
+  time_logger << replanCB_t.ElapsedMs() << "\n";
+  time_logger.close();
+  }
 
   /*  std::cout << "This is the WHOLE TRAJECTORY" << std::endl;
     printStateVector(sg_whole_.X_temp_);
@@ -728,36 +780,6 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   
   std::cout << bold << blue << "Replanning took " << replanCB_t.ElapsedMs() << " ms" << reset << std::endl;
   
-  if (option == 0){
-    if (initiate_time){
-        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_single_point.txt", std::ofstream::out | std::ofstream::trunc);
-        time_logger.close();
-        initiate_time = false;
-      }
-  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_single_point.txt", std::ios_base::app);
-  time_logger << replanCB_t.ElapsedMs() << "\n";
-  time_logger.close();
-  
-  }else if (option == 1){
-    if (initiate_time){
-        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi.txt", std::ofstream::out | std::ofstream::trunc);
-        time_logger.close();
-        initiate_time = false;
-      }
-  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi.txt", std::ios_base::app);
-  time_logger << replanCB_t.ElapsedMs() << "\n";
-  time_logger.close();
-  
-  }else if (option == 2){
-    if (initiate_time){
-        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi_thread.txt", std::ofstream::out | std::ofstream::trunc);
-        time_logger.close();
-        initiate_time = false;
-      }
-  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi_thread.txt", std::ios_base::app);
-  time_logger << replanCB_t.ElapsedMs() << "\n";
-  time_logger.close();
-  }
   return;
 }
 
@@ -776,6 +798,7 @@ bool Faster::appendToPlan(int k_end_whole, const std::vector<state>& whole, int 
 
   bool output;
   int plan_size = plan_.size();
+
   /*  std::cout << "plan_.size()= " << plan_.size() << std::endl;
     std::cout << "plan_size - k_end_whole = " << plan_size - k_end_whole << std::endl;*/
   if ((plan_size - 1 - k_end_whole) < 0)

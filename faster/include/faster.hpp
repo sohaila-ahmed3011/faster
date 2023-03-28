@@ -74,12 +74,12 @@ public:
               vec_E<Polyhedron<3>>& poly_whole_out, std::vector<state>& X_safe_out, std::vector<state>& X_whole_out);
   void updateState(state data);
   multi_plan_return multi_plan_any_point(state A, state &E, bool &solvedjps, vec_E<Polyhedron<3>> &poly_tmp, 
-                            std::vector<LinearConstraint3D> &l_constraints_whole_);
+                            std::vector<LinearConstraint3D> &l_constraints_whole_, JPS_Manager &jps_manager_);
   void multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Polyhedron<3>> &poly_whole_out, 
                     double ra, vec_Vecf<3> &JPS_whole, vec_Vecf<3> &JPS_in,vec_Vecf<3> &JPSk);
 
  void push_job(Faster * worker,state A, state &E, bool &solvedjps, vec_E<Polyhedron<3>> &poly_tmp, 
-                                  std::vector<LinearConstraint3D> &l_constraints_whole_); 
+                                  std::vector<LinearConstraint3D> &l_constraints_whole_, JPS_Manager &jps_manager_); 
  
   void updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_unk);
   bool getNextGoal(state& next_goal);
@@ -94,10 +94,25 @@ private:
 
   double previous_yaw_ = 0.0;
 
+  typedef boost::packaged_task<multi_plan_return> task_t;
+  typedef boost::shared_ptr<task_t> ptask_t;
+  std::vector<boost::shared_future<multi_plan_return>> pending_data;
+  boost::asio::io_service ioService;
+  boost::thread_group threadpool;
+  std::unique_ptr<boost::asio::io_service::work> service_work;
+
+  // 0 for single point, 1 for multi points, 2 for multi thread
+  int option {2};
+  bool initiate_threads {true}; // flag for the threads
+  bool initiate_time {true}; // flag for time files
+
   SolverGurobi sg_whole_;  // solver gurobi whole trajectory
   SolverGurobi sg_safe_;   // solver gurobi whole trajectory
 
   JPS_Manager jps_manager_;  // Manager of JPS
+  // JPS_Manager jps_manager_1;  // Manager of JPS 1
+  // JPS_Manager jps_manager_2;  // Manager of JPS 2
+
 
   void yaw(double diff, state& next_goal);
 
