@@ -137,7 +137,15 @@ void JPS_Manager::cvxEllipsoidDecomp(vec_Vecf<3>& path, int type_space, std::vec
   // Convert to inequality constraints Ax < b
   // std::vector<polytope> polytopes;
   auto polys = ellip_decomp_util_.get_polyhedrons();
+  auto ellipsoids = ellip_decomp_util_.get_ellipsoids();
 
+  total_poly_area_ = 0;
+  for (size_t i = 0; i < path.size() - 1; i++)
+  {
+    total_poly_area_ += ellipsoids[i].volume();
+  }
+  
+  std::cout<< "Approximated Polyhedrons volume is: " << total_poly_area_<< std::endl;
   l_constraints.clear();
 
   for (size_t i = 0; i < path.size() - 1; i++)
