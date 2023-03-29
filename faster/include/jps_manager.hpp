@@ -56,6 +56,7 @@ public:
   void setVisual(bool visual);
   void setDroneRadius(double inflation_jps);
   Vec3f hybridVel_;
+  bool use_hybrid_a_ {false};
   
 private:
   double factor_jps_, res_, inflation_jps_, z_ground_, z_max_, drone_radius_;

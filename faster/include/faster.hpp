@@ -66,6 +66,7 @@ public:
   void resetInitialization();
 
 private:
+  int feasibility_counter_{0};
   state M_;
   std::deque<state> plan_;
 

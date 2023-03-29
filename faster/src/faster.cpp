@@ -420,6 +420,7 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
 
     if (solved_whole == false)
     {
+      feasibility_counter_+=1;
       std::cout << bold << red << "No solution found for the whole trajectory" << reset << std::endl;
       return;
     }
@@ -497,6 +498,7 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
     M_.pos = JPS_safe[JPS_safe.size() - 1];
 
     // compute convex decomposition of JPS_safe
+    cvxEllipsoidDecomp.use_hybrid_a_ = true; // true >> use hubrid, false >> jps or a*
     jps_manager_.cvxEllipsoidDecomp(JPS_safe, UNKOWN_AND_OCCUPIED_SPACE, l_constraints_safe_, poly_safe_out);
 
     JPS_safe_out = JPS_safe;
@@ -529,6 +531,7 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
 
     if (solved_safe == false)
     {
+      feasibility_counter_+=1;
       std::cout << red << "No solution found for the safe path" << reset << std::endl;
       return;
     }
@@ -589,7 +592,7 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   sg_safe_.setFactorInitialAndFinalAndIncrement(new_init_safe, new_final_safe, par_.increment_safe);
 
   planner_initialized_ = true;
-
+  std::cout << bold << blue << "infeasibility_counter_ " << feasibility_counter_ << reset << std::endl;
   std::cout << bold << blue << "Replanning took " << replanCB_t.ElapsedMs() << " ms" << reset << std::endl;
 
   return;
