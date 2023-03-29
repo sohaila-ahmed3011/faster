@@ -102,9 +102,13 @@ private:
   std::unique_ptr<boost::asio::io_service::work> service_work;
 
   // 0 for single point, 1 for multi points, 2 for multi thread
-  int option {2};
+  int option {1};
   bool initiate_threads {true}; // flag for the threads
   bool initiate_time {true}; // flag for time files
+  bool initiate_volume {true}; // flag for volume files
+  double total_volume_single {0};
+  double total_volume_multi {0};
+
 
   SolverGurobi sg_whole_;  // solver gurobi whole trajectory
   SolverGurobi sg_safe_;   // solver gurobi whole trajectory
@@ -166,6 +170,7 @@ private:
   std::vector<LinearConstraint3D> l_constraints_whole_;  // Polytope (Linear) constraints
   std::vector<LinearConstraint3D> l_constraints_safe_;   // Polytope (Linear) constraints
   std::ofstream time_logger;
+  std::ofstream volume_logger;
 
   int deltaT_ = 10;
   int deltaT_min_ = 10;

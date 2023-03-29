@@ -42,7 +42,7 @@ public:
   void updateJPSMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr, Eigen::Vector3d& center);
   vec_Vecf<3> solveJPS3D(Vec3f& start, Vec3f& goal, bool* solved, int i);
   void setNumCells(int cells_x, int cells_y, int cells_z);
-
+  double getVolume();
   // Convex Decomposition
   void cvxEllipsoidDecomp(vec_Vecf<3>& path, int type_space, std::vector<LinearConstraint3D>& l_constraints,
                           vec_E<Polyhedron<3>>& poly_out);

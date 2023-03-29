@@ -352,7 +352,7 @@ bool Faster::init(){
   deleteVertexes(JPS_whole, par_.max_poly_whole, 1); // generate polys for secondary paths 
   E.pos = JPS_whole[JPS_whole.size() - 1];
   jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_tmp);
-
+  total_volume_multi += jps_manager_.getVolume();
   return_.constraints = l_constraints_whole_;
   return_.polys = poly_tmp;
 
@@ -408,7 +408,8 @@ void Faster::multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Po
 
       boost::wait_for_all(pending_data.begin(), pending_data.end());
       jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
-  
+      total_volume_single += jps_manager_.getVolume();
+      total_volume_multi += jps_manager_.getVolume();
       for(auto result : pending_data){
         poly_whole_out.insert(poly_whole_out.end(), result.get().polys.begin(), result.get().polys.end());
         l_constraints_whole_.insert(l_constraints_whole_.end(), result.get().constraints.begin(), result.get().constraints.end());
@@ -421,6 +422,8 @@ void Faster::multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Po
       multi_plan_any_point(A, E1, solvedjps1, poly_tmp_1, l_constraints_whole_1, jps_manager_);
       multi_plan_any_point(A, E2, solvedjps2, poly_tmp_2, l_constraints_whole_2, jps_manager_);
       jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
+      total_volume_multi += jps_manager_.getVolume();
+      total_volume_single += jps_manager_.getVolume();
       poly_whole_out.insert(poly_whole_out.end(), poly_tmp_1.begin(), poly_tmp_1.end());
       poly_whole_out.insert(poly_whole_out.end(), poly_tmp_2.begin(), poly_tmp_2.end());
       l_constraints_whole_.insert(l_constraints_whole_.end(), l_constraints_whole_1.begin(), l_constraints_whole_1.end());
@@ -537,7 +540,7 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
       deleteVertexes(JPS_whole, par_.max_poly_whole);
       E.pos = JPS_whole[JPS_whole.size() - 1];
       jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
-
+      total_volume_single += jps_manager_.getVolume();
     }
   
     // Check if G is inside poly_whole
@@ -572,8 +575,38 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
     dummy_vector.push_back(dummy);
     sg_whole_.X_temp_ = dummy_vector;
   }
-
-
+  // write volume information
+  if (option == 0){
+    if (initiate_volume){
+        volume_logger.open("/home/ros/ros_ws/src/faster/faster/src/volume_single_point.txt", std::ofstream::out | std::ofstream::trunc);
+        volume_logger.close();
+        initiate_volume = false;
+      }
+  volume_logger.open("/home/ros/ros_ws/src/faster/faster/src/volume_single_point.txt", std::ios_base::app);
+  volume_logger << total_volume_single << "\n";
+  volume_logger.close();
+  
+  }else{
+    if (initiate_volume){
+        volume_logger.open("/home/ros/ros_ws/src/faster/faster/src/volume_multi.txt", std::ofstream::out | std::ofstream::trunc);
+        volume_logger.close();
+        volume_logger.open("/home/ros/ros_ws/src/faster/faster/src/volume_single_point.txt", std::ofstream::out | std::ofstream::trunc);
+        volume_logger.close();
+        initiate_volume = false;
+      }
+  volume_logger.open("/home/ros/ros_ws/src/faster/faster/src/volume_single_point.txt", std::ios_base::app);
+  volume_logger << total_volume_single << "\n";
+  volume_logger.close();
+    
+  volume_logger.open("/home/ros/ros_ws/src/faster/faster/src/volume_multi.txt", std::ios_base::app);
+  volume_logger << total_volume_multi << "\n";
+  volume_logger.close();
+  }
+  std::cout<<total_volume_single<< " | "<< total_volume_multi << std::endl;
+  total_volume_single = 0;
+  total_volume_multi = 0;
+  
+  // write computational time
   if (option == 0){
     if (initiate_time){
         time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_single_point.txt", std::ofstream::out | std::ofstream::trunc);
