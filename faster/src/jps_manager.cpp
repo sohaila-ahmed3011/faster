@@ -188,6 +188,18 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
         tmp.push_back(goal);
         path = tmp;
       }
+      
+      if (initiate_path)
+      {
+        path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_hybrid_a_star.txt", std::ofstream::out | std::ofstream::trunc);
+        path_logger.close();
+        initiate_path = false;
+      }
+
+      path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_hybrid_a_star.txt", std::ios_base::app);
+      path_logger << path << "\n";
+      path_logger.close();
+
     }
     else
     {
@@ -226,6 +238,18 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
         tmp.push_back(goal);
         path = tmp;
       }
+
+      if (initiate_path)
+      {
+        path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_jps.txt", std::ofstream::out | std::ofstream::trunc);
+        path_logger.close();
+        initiate_path = false;
+      }
+
+      path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_jps.txt", std::ios_base::app);
+      path_logger << path << "\n";
+      path_logger.close();
+    
     }
     else
     {

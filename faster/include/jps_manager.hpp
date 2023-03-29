@@ -61,6 +61,7 @@ public:
 private:
   double factor_jps_, res_, inflation_jps_, z_ground_, z_max_, drone_radius_;
   int cells_x_, cells_y_, cells_z_;
-  bool visual_;
+  bool visual_, initiate_path {true};
+  std::ofstream path_logger;
   EllipsoidDecomp3D ellip_decomp_util_;
 };
