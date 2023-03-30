@@ -84,6 +84,7 @@ class MPCControl():
         self.state = State()
         self.state.pos.x = msg.pose.pose.position.x
         self.state.pos.y = msg.pose.pose.position.y
+        self.state.pos.z = msg.pose.pose.position.z
         self.state.quat = msg.pose.pose.orientation
         self.state.vel = msg.twist.twist.linear
         self.state.w = msg.twist.twist.angular
@@ -139,8 +140,9 @@ class MPCControl():
         
     def goalCB(self, goal):
         self.goal = goal
-        yaw = math.atan2(self.goal.p.y - self.odom_pose[1], self.goal.p.x - self.odom_pose[0])
-        self.target_pose =  np.array([self.goal.p.x, self.goal.p.y, yaw])
+        # yaw = math.atan2(self.goal.p.y - self.odom_pose[1], self.goal.p.x - self.odom_pose[0])
+        # yaw = math.atan2(self.goal.p.y, self.goal.p.x)
+        self.target_pose =  np.array([self.goal.p.x, self.goal.p.y, self.wrap_to_pi(self.goal.yaw)])
 
     def execute_cb(self, goal):
         # rospy.loginfo('%s: Executing, moving to a target location %i,%i with current error %i' % 
