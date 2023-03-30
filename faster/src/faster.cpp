@@ -45,6 +45,8 @@ Faster::Faster(parameters par) : par_(par)
   jps_manager_.setZGroundAndZMax(par_.z_ground, par_.z_max);
   // jps_manager_.setVisual(par_.visual);
   jps_manager_.setDroneRadius(par_.drone_radius);
+  jps_manager_.use_hybrid_a_ = true; // true >> use hybrid a*, false >> jps or a*
+
 
   double max_values[3] = { par_.v_max, par_.a_max, par_.j_max };
 
@@ -359,6 +361,7 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   bool solvedjps = false;
   MyTimer timer_jps(true);
 
+
   vec_Vecf<3> JPSk = jps_manager_.solveJPS3D(A.pos, G.pos, &solvedjps, 1);
 
   if (solvedjps == false)
@@ -498,7 +501,6 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
     M_.pos = JPS_safe[JPS_safe.size() - 1];
 
     // compute convex decomposition of JPS_safe
-    cvxEllipsoidDecomp.use_hybrid_a_ = true; // true >> use hubrid, false >> jps or a*
     jps_manager_.cvxEllipsoidDecomp(JPS_safe, UNKOWN_AND_OCCUPIED_SPACE, l_constraints_safe_, poly_safe_out);
 
     JPS_safe_out = JPS_safe;

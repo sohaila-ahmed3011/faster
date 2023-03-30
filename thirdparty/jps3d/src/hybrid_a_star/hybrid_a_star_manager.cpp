@@ -1,7 +1,7 @@
 #include <hybrid_a_star/hybrid_a_star_manager.h>
 
 void Planner::costMapCallBack(const nav_msgs::OccupancyGridPtr &costmap_msg_ptr){
-    std::cout<< "getting cost map" << std::endl;
+    // std::cout<< "getting cost map" << std::endl;
     _cost_map_ = costmap_msg_ptr;
 }
 
@@ -13,7 +13,7 @@ void Planner::odomCallback(const nav_msgs::OdometryConstPtr& msg){
 void Planner::setmap(nav_msgs::OccupancyGridPtr costMapPtr, int _x_size, int _y_size, int _z_size, double res){
     // initialize cost map
     costMapCallBack(costMapPtr);
-    res = 0.5; // enforce higher resolution for faster computation
+    res = 0.8; // enforce higher resolution for faster computation
     //initialize grid graph parameters with dimension 10 by 10 by 4
     _x_size = _x_size * res ;
     _y_size = _y_size * res ;
@@ -43,7 +43,7 @@ void Planner::setmap(nav_msgs::OccupancyGridPtr costMapPtr, int _x_size, int _y_
       graph_->InitGridMap(res, _max_x_id, _max_y_id, params);
       initBool_ = false;
     }
-    std::cout<< "setmap" << std::endl;
+    // std::cout<< "setmap" << std::endl;
     setObstacles();
     _hybrid_a_star->setGraph(graph_);
 
@@ -56,14 +56,14 @@ bool Planner::plan(Vec3f &start,  Vec3f &goal, Vec3f _start_velocity_) {
     target_pt[2] = 0;
     // _start_velocity_ = Vec3f(0,0,0);
     std::function<huristics_cost_t(Vec3f, Vec3f, Vec3f)> heuristic_optimal_bvp = &optimal_boundary_value_problem<Vec3f>;
-    // TrajectoryStatePtr*** trajectory_lib = _hybrid_a_star->trajectoryLibrary(start, _start_velocity_, target_pt, heuristic_optimal_bvp);
+    //TrajectoryStatePtr*** trajectory_lib = _hybrid_a_star->trajectoryLibrary(start, _start_velocity_, target_pt, heuristic_optimal_bvp);
     bool solved_bool = _hybrid_a_star->searchPath(start, target_pt, heuristic_optimal_bvp);
+
     std::function<huristics_cost_t(RobotNode::Ptr,  RobotNode::Ptr)> heuristic = &calculate_euclidean_dis<RobotNode::Ptr>;
     
     if(graph_ != nullptr){
       graph_->reset(); 
     }
-    std::cout<< "plan" << std::endl;
 
     //graph_->InitGridMap(_map_lower, _map_upper, Vector3i(_max_x_id, _max_y_id, _max_z_id), _map_resolution);
     // graph_->InitGridMap(_map_resolution, _max_x_id, _max_y_id, params);  // result in unknown console output

@@ -135,7 +135,7 @@ void JPS_Manager::updateJPSMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr, Eigen
   
   mtx_jps_map_util.lock();
 
-  if {use_hybrid_a_}
+  if (use_hybrid_a_)
   {
     hybrid_a_star_ptr_->setmap(ocubptr, cells_x_, cells_y_, cells_z_, factor_jps_ * res_ ); //map to hybrid a star
   }else
@@ -169,10 +169,9 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
   vec_Vecf<3> path;
   path.clear();
 
-  if {use_hybrid_a_}
+  if (use_hybrid_a_)
   {
     bool valid_HAS = hybrid_a_star_ptr_->plan(start, goal, hybridVel_); //using hybrid a star planner
-
     if (valid_HAS == true)  // There is a solution
     {
       path = hybrid_a_star_ptr_->getPath();  // getpar_.RawPath() if you want the path with more corners (not "cleaned")
@@ -180,6 +179,7 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
       {
         path[0] = start;
         path[path.size() - 1] = goal;  // force to start and end in the start and goal (and not somewhere in the voxel)
+
       }
       else
       {  // happens when start and goal are very near (--> same cell)
@@ -197,7 +197,11 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
       }
 
       path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_hybrid_a_star.txt", std::ios_base::app);
-      path_logger << path << "\n";
+      for (size_t t =0;i<path.size();i++)
+      {
+        path_logger << path[i] << "\n"; //TODO: print the whole path
+      }
+      path_logger<< "\n\n";
       path_logger.close();
 
     }
@@ -221,7 +225,7 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
 
     planner_ptr_->setMapUtil(map_util_);  // Set collision checking function
     bool valid_jps = planner_ptr_->plan(start, goal, 1, true);  // Plan from start to goal with heuristic weight=1, and
-                                                                using JPS (if false --> use A*)
+                                                                // using JPS (if false --> use A*)
     
     if (valid_jps == true)  // There is a solution
     {
@@ -247,7 +251,11 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
       }
 
       path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_jps.txt", std::ios_base::app);
-      path_logger << path << "\n";
+      for (size_t t =0;i<path.size();i++)
+      {
+        path_logger << path[i] << "\n"; //TODO: print the whole path
+      }
+      path_logger<< "\n\n";
       path_logger.close();
     
     }
