@@ -171,7 +171,7 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
 
   if (use_hybrid_a_)
   {
-    bool valid_HAS = hybrid_a_star_ptr_->plan(start, goal, hybridVel_); //using hybrid a star planner
+    bool valid_HAS = hybrid_a_star_ptr_->plan(start, goal, hybridVel_); //use hybrid a star planner
     if (valid_HAS == true)  // There is a solution
     {
       path = hybrid_a_star_ptr_->getPath();  // getpar_.RawPath() if you want the path with more corners (not "cleaned")
@@ -197,11 +197,7 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
       }
 
       path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_hybrid_a_star.txt", std::ios_base::app);
-      for (size_t t =0;i<path.size();i++)
-      {
-        path_logger << path[i] << "\n"; //TODO: print the whole path
-      }
-      path_logger<< "\n\n";
+      path_logger << path[0] << "\n"; //TODO: print the whole path
       path_logger.close();
 
     }
@@ -251,11 +247,7 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
       }
 
       path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_jps.txt", std::ios_base::app);
-      for (size_t t =0;i<path.size();i++)
-      {
-        path_logger << path[i] << "\n"; //TODO: print the whole path
-      }
-      path_logger<< "\n\n";
+      path_logger << path[0] << "\n"; //TODO: print the whole path
       path_logger.close();
     
     }

@@ -13,7 +13,7 @@ void Planner::odomCallback(const nav_msgs::OdometryConstPtr& msg){
 void Planner::setmap(nav_msgs::OccupancyGridPtr costMapPtr, int _x_size, int _y_size, int _z_size, double res){
     // initialize cost map
     costMapCallBack(costMapPtr);
-    res = 0.8; // enforce higher resolution for faster computation
+    res = 0.5; // enforce higher resolution for faster computation
     //initialize grid graph parameters with dimension 10 by 10 by 4
     _x_size = _x_size * res ;
     _y_size = _y_size * res ;
