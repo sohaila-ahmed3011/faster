@@ -7,7 +7,6 @@
  * -------------------------------------------------------------------------- */
 
 #include "faster.hpp"
-
 #include <pcl/kdtree/kdtree.h>
 #include <Eigen/StdVector>
 #include <stdio.h>
@@ -45,7 +44,6 @@ Faster::Faster(parameters par) : par_(par)
   jps_manager_.setZGroundAndZMax(par_.z_ground, par_.z_max);
   // jps_manager_.setVisual(par_.visual);
   jps_manager_.setDroneRadius(par_.drone_radius);
-  jps_manager_.use_hybrid_a_ = true; // true >> use hybrid a*, false >> jps or a*
 
 
   double max_values[3] = { par_.v_max, par_.a_max, par_.j_max };
