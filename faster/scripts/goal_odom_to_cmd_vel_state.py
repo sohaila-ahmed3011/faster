@@ -195,7 +195,7 @@ class GoalToCmdVel:
 
         # twist.linear.x=self.Kp*(goal.p.x - self.state.pos.x);
 
-        target_pose = np.array([self.goal.p.x, self.goal.p.y, desired_yaw])
+        target_pose = np.array([self.goal.p.x, self.goal.p.y, self.goal.yaw])
         odom_pose = np.array([self.state.pos.x, self.state.pos.y, self.current_yaw])
 
         tar = open('/home/ros/ros_ws/src/faster/faster/scripts/target_pose.txt', 'a')

@@ -44,7 +44,7 @@ class MPCDiffDriveControl():
        
         R = ca.DM.zeros(2,2)
         R[0,0] = 0.05 #0.05
-        R[1,1] = 0.05  #0.05
+        R[1,1] = 0.05 #0.05
 
         obj = 0
         g = ca.SX.sym('g', self.N+1, self.n_status)
