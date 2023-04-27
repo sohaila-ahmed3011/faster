@@ -151,16 +151,19 @@ void JPS_Manager::updateJPSMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr, Eigen
 
 void JPS_Manager::performAStar(Eigen::Vector3d start,Eigen::Vector3d goal)
 {
-  bool valid_HAS = hybrid_a_star_ptr_->plan(start, goal, hybridVel_);
-  path_ = hybrid_a_star_ptr_->getPath();  // getpar_.RawPath() if you want the path with more corners (not "cleaned")
-  a_star_completed = true;
-  star_counter_ ++;
+  a_star_completed = hybrid_a_star_ptr_->plan(start, goal, hybridVel_);
+  if (a_star_completed)
+  {
+    path_ = hybrid_a_star_ptr_->getPath();    
+    star_counter_ ++;
+  }
+
 }
 
 void JPS_Manager::performJPS(Eigen::Vector3d start,Eigen::Vector3d goal)
 {
   std::cout << "Hybrid A* took more time than required, shifting to JPS now ..." << std::endl;
-  printInfo_ = "JPS";
+  // printInfo_ = "JPS";
   // Set start and goal free
   const Veci<3> start_int = map_util_->floatToInt(start);
   const Veci<3> goal_int = map_util_->floatToInt(goal);
@@ -180,9 +183,10 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
 {
   Eigen::Vector3d start(start_sent(0), start_sent(1), std::max(start_sent(2), 0.0));
   Eigen::Vector3d goal(goal_sent(0), goal_sent(1), std::max(goal_sent(2), 0.0));
-
+  
   Vec3f originalStart = start;
-
+  Jps_completed = false;
+  a_star_completed = false;
   // pcl::PointXYZ pcl_start = eigenPoint2pclPoint(start);
   // pcl::PointXYZ pcl_goal = eigenPoint2pclPoint(goal);
 
@@ -194,40 +198,14 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
   path_.clear();
 
 
-  /* Apply Hybrid A* in a thread
-     if not converged, apply JPS
-     instead
+  /* Apply Hybrid A* 
+     if not converged in a predifned time,
+     apply JPS instead
   */ 
-
-  // Initialize condition variable and mutex for synchronization
-  std::condition_variable cv;
-  std::mutex cv_m;
-  JPS::Timer planner_time(true); // Calculate elapsed time in milliseconds
-
-  // auto start_time = std::chrono::steady_clock::now(); // Get start time
-  // Start FunA on a separate thread
-  std::thread t([&cv, &cv_m, start, goal, this]() {
-      performAStar(start, goal);
-      cv.notify_one(); // Notify main thread that FunA has completed
-  });
-
+  performAStar(start, goal);
+  if (!a_star_completed)
   {
-    std::unique_lock<std::mutex> lk(cv_m);
-    cv.wait_for(lk, std::chrono::milliseconds(50), [this]{ return a_star_completed; });
-  }
-
-  // auto end_time = std::chrono::steady_clock::now(); // Get end time
-  auto elapsed = planner_time.ElapsedMs();
-  // auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count(); // Calculate elapsed time in milliseconds
-  std::cout << "elapsed time for hybrid " << elapsed << " ms" << std::endl;
-  std::cout << "a_star_completed " << a_star_completed << std::endl;
-
-  if (elapsed >= 50 && !a_star_completed) { // If elapsed time is more than 1 second and HYbrid A* has not completed successfully
-      t.detach(); // Detach hybrid A* thread
-      t.
-      performJPS(start, goal); // Appply JPS instead
-  } else {
-      t.join(); // Wait till Hybrid A* thread to complete
+    performJPS(start, goal);
   }
 
   if (Jps_completed || a_star_completed)  // There is a solution
@@ -246,26 +224,27 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
       path_ = tmp;
     }
     
-    // if (initiate_path)
-    // {
-    //   path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_hybrid_a_star.txt", std::ofstream::out | std::ofstream::trunc);
-    //   path_logger.close();
-    //   initiate_path = false;
-    // }
+    if (initiate_path)
+    {
+      path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_hybrid_a_star.txt", std::ofstream::out | std::ofstream::trunc);
+      path_logger.close();
+      initiate_path = false;
+    }
 
-    // path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_hybrid_a_star.txt", std::ios_base::app);
-    // path_logger << path_[0] << "\n"; //TODO: print the whole path
-    // path_logger.close();
+    path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_hybrid_a_star.txt", std::ios_base::app);
+    path_logger << path_[0][0] << "\n"; //TODO: print the whole path
+    path_logger.close();
     
     *solved = true;
   }
   else
   {
-    std::cout << printInfo_ << " didn't find a solution from " << start.transpose() << " to " << goal.transpose() << std::endl;
+    std::cout << "Both JPS and Hybrid A* didn't find a solution from " << start.transpose() << " to " << goal.transpose() << std::endl;
     *solved = false;
   }
-  mtx_jps_map_util.unlock();
+
   std::cout << "JPS was called " << jps_counter_ << " times and A* was called " << star_counter_ << " times" << std::endl;
+  mtx_jps_map_util.unlock();
 
   return path_;
 

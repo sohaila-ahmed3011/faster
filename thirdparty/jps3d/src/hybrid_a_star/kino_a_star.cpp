@@ -4,6 +4,7 @@
 #include <hybrid_a_star/kino_a_star.h>
 #include <cmath>
 #include <unordered_set>
+#include <ros/ros.h>
 
 using namespace std;
 
@@ -33,7 +34,7 @@ bool KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end
 
     std::vector< typename State::Ptr> neighbors_ptr;
     std::vector<TrajectoryStatePtr> neighbors_traj_state;
-
+    
     while (!open_set_.empty()) {
         current_node_ptr = open_set_.begin()->second;
         current_node_ptr->id_ = State::WAS_THERE;  // in closed list
@@ -94,6 +95,13 @@ bool KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end
             } else {
                 continue;
             }
+        }
+        
+        ros::Duration use_time = ros::Time::now() - start_time;
+        if (use_time.toSec() > 0.1)
+        {
+            // ROS_ERROR_STREAM("Hybrid A*  took more than required ");
+            return false;
         }
     }
     ROS_WARN_STREAM("Hybrid A* failed to search path!");
