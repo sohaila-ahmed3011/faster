@@ -94,7 +94,7 @@ class MPCControl():
         # print("target: ", self.target_pose)
 
     def mpc_planner_init(self):
-        self.mpc_solver = MPCDiffDriveControl(self.Ts, 20, 1.2)
+        self.mpc_solver = MPCDiffDriveControl(self.Ts, 20, 1.4)
         if(self.q is None):
             print("Still robot current pose is not set")
         else:
