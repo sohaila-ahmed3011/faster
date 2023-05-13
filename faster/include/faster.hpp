@@ -102,7 +102,7 @@ private:
   std::unique_ptr<boost::asio::io_service::work> service_work;
 
   // 0 for single point, 1 for multi points, 2 for multi thread
-  int option {1};
+  int option {0};
   bool initiate_threads {true}; // flag for the threads
   bool initiate_time {true}; // flag for time files
   bool initiate_volume {true}; // flag for volume files
@@ -238,4 +238,6 @@ private:
   state state_;
   state G_;       // This goal is always inside of the map
   state G_term_;  // This goal is the clicked goal
+  int recv_success_count{0};
+  int recv_fail_count{0};
 };

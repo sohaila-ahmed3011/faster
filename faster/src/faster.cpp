@@ -529,19 +529,19 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
 //////////////////////////////////////////////////////////////////////////
 
   if (par_.use_faster == true)
-   {
+  {
 
-      if (option !=0){
-        multi_plan_E( A, E, G, solvedjps, poly_whole_out, ra, JPS_whole, JPS_in, JPSk);
-      }
+    // if (option !=0){
+    //   multi_plan_E( A, E, G, solvedjps, poly_whole_out, ra, JPS_whole, JPS_in, JPSk);
+    // }
 
-      else if (option == 0){
+    // else if (option == 0){
 
-      deleteVertexes(JPS_whole, par_.max_poly_whole);
-      E.pos = JPS_whole[JPS_whole.size() - 1];
-      jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
-      total_volume_single += jps_manager_.getVolume();
-    }
+    deleteVertexes(JPS_whole, par_.max_poly_whole);
+    E.pos = JPS_whole[JPS_whole.size() - 1];
+    jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
+    total_volume_single += jps_manager_.getVolume();
+  // }
   
     // Check if G is inside poly_whole
     bool isGinside_whole = l_constraints_whole_[l_constraints_whole_.size() - 1].inside(G.pos);
@@ -558,9 +558,34 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
     std::cout << bold << green << "whole_gurobi_t took " << whole_gurobi_t.ElapsedMs() << " ms" << reset << std::endl;
     if (solved_whole == false)
     {
+      option = 2;
+      recv_success_count++;
+      multi_plan_E( A, E, G, solvedjps, poly_whole_out, ra, JPS_whole, JPS_in, JPSk);
+      // Check if G is inside poly_whole
+      bool isGinside_whole = l_constraints_whole_[l_constraints_whole_.size() - 1].inside(G.pos);
+
+      E.pos = (isGinside_whole == true) ? G.pos : E.pos;
+
+      // Set Initial cond, Final cond, and polytopes for the whole traj
+      sg_whole_.setX0(A);
+      sg_whole_.setXf(E);
+      sg_whole_.setPolytopes(l_constraints_whole_);
+      // Solve with Gurobi
+      MyTimer whole_gurobi_t(true);
+      solved_whole = sg_whole_.genNewTraj();
+      // std::cout << bold << green << "whole_gurobi_t took " << whole_gurobi_t.ElapsedMs() << " ms" << reset << std::endl;
       std::cout << bold << red << "No solution found for the whole trajectory" << reset << std::endl;
-      return;
+      std::cout << bold << yellow << "recovery behavior applied"  << reset << std::endl;
+      
+      if (solved_whole == false){
+        recv_fail_count++;
+        std::cout << bold << red << "failure of recovery" << reset << std::endl;
+        return;
+      }
     }
+    std::cout << bold  << "recovery applied " << recv_success_count << " times" << reset << std::endl;
+    std::cout << bold  << "recovery failure: " << recv_fail_count << reset << std::endl;
+
 
     // Get Results
     sg_whole_.fillX();
@@ -602,7 +627,7 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   volume_logger << total_volume_multi << "\n";
   volume_logger.close();
   }
-  std::cout<<total_volume_single<< " | "<< total_volume_multi << std::endl;
+  // std::cout<<total_volume_single<< " | "<< total_volume_multi << std::endl;
   total_volume_single = 0;
   total_volume_multi = 0;
   
