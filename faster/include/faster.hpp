@@ -108,6 +108,7 @@ private:
   bool initiate_volume {true}; // flag for volume files
   double total_volume_single {0};
   double total_volume_multi {0};
+  bool showVolume_ {true}; // If true, write free space volume in txt file
 
 
   SolverGurobi sg_whole_;  // solver gurobi whole trajectory

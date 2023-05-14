@@ -578,10 +578,10 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
       std::cout << bold << yellow << "recovery behavior applied"  << reset << std::endl;
       
       if (solved_whole == false){
-        recv_fail_count++;
+      recv_fail_count++;
         std::cout << bold << red << "failure of recovery" << reset << std::endl;
         return;
-      }
+    }
     }
     std::cout << bold  << "recovery applied " << recv_success_count << " times" << reset << std::endl;
     std::cout << bold  << "recovery failure: " << recv_fail_count << reset << std::endl;
@@ -601,7 +601,7 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
     sg_whole_.X_temp_ = dummy_vector;
   }
   // write volume information
-  if (option == 0){
+  if (option == 0 && showVolume_){
     if (initiate_volume){
         volume_logger.open("/home/ros/ros_ws/src/faster/faster/src/volume_single_point.txt", std::ofstream::out | std::ofstream::trunc);
         volume_logger.close();
@@ -611,18 +611,12 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   volume_logger << total_volume_single << "\n";
   volume_logger.close();
   
-  }else{
+  }else if(showVolume_){
     if (initiate_volume){
         volume_logger.open("/home/ros/ros_ws/src/faster/faster/src/volume_multi.txt", std::ofstream::out | std::ofstream::trunc);
         volume_logger.close();
-        volume_logger.open("/home/ros/ros_ws/src/faster/faster/src/volume_single_point.txt", std::ofstream::out | std::ofstream::trunc);
-        volume_logger.close();
         initiate_volume = false;
-      }
-  volume_logger.open("/home/ros/ros_ws/src/faster/faster/src/volume_single_point.txt", std::ios_base::app);
-  volume_logger << total_volume_single << "\n";
-  volume_logger.close();
-    
+      }    
   volume_logger.open("/home/ros/ros_ws/src/faster/faster/src/volume_multi.txt", std::ios_base::app);
   volume_logger << total_volume_multi << "\n";
   volume_logger.close();
