@@ -21,6 +21,9 @@ bool KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end
     Vec3i start_idx = graph_->coord2gridIndex(start_pt);
     Vec3f start_velocity(0.0, 0.0, 0.0);
 
+    // cout << "start: before " << start_pt.transpose() << "start_idx: "<< start_idx << endl;
+
+    // cout << "end_pt " << end_pt << endl;
     typename State::Ptr current_node_ptr = nullptr;
     typename State::Ptr neighbor_node_ptr = nullptr;
     open_set_.clear();
@@ -32,6 +35,7 @@ bool KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end
     start_node_ptr->id_ = State::WOULD_LIKE; // neither in open list nor in closed list
     open_set_.insert(std::make_pair(start_node_ptr->f_score_, start_node_ptr));
 
+    // cout << "start: after " << start_node_ptr->robot_state_.transpose() << endl;
     std::vector< typename State::Ptr> neighbors_ptr;
     std::vector<TrajectoryStatePtr> neighbors_traj_state;
     
@@ -41,11 +45,13 @@ bool KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end
         open_set_.erase(open_set_.begin());
 
         double dist = (current_node_ptr->robot_state_ - end_pt).norm();
+        // cout << "start: " << current_node_ptr->robot_state_.transpose() << " end point  " << end_pt.transpose() << endl;
         // terminate if dist to goal is small
         if (dist < graph_->resolution_) {
             terminate_ptr_ = current_node_ptr;
             ros::Duration use_time = ros::Time::now() - start_time;
             ROS_INFO("\033[1;32m --> hybrid A* use time: %f (ms)\033[0m", use_time.toSec() * 1000);
+            // path_ = getPath();
             return true;
         }
         
@@ -97,12 +103,12 @@ bool KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end
             }
         }
         
-        ros::Duration use_time = ros::Time::now() - start_time;
-        if (use_time.toSec() > 0.1)
-        {
-            // ROS_ERROR_STREAM("Hybrid A*  took more than required ");
-            return false;
-        }
+        // ros::Duration use_time = ros::Time::now() - start_time;
+        // if (use_time.toSec() > 0.1)
+        // {
+        //     // ROS_ERROR_STREAM("Hybrid A*  took more than required ");
+        //     return false;
+        // }
     }
     ROS_WARN_STREAM("Hybrid A* failed to search path!");
     return false;
@@ -187,12 +193,13 @@ template<typename Graph, typename State>
 vec_E<Vec3f> KinoAStar<Graph, State>::getPath() {
     vec_E<Vec3f> path;
     std::vector< typename State::Ptr> grid_path;
-
-     typename State::Ptr grid_node_ptr = terminate_ptr_;
+    typename State::Ptr grid_node_ptr = terminate_ptr_;
+    // std::cout<< "terminal state: " << terminate_ptr_->robot_state_ << std::endl;
     while (grid_node_ptr != nullptr) {
         grid_path.emplace_back(grid_node_ptr);
         grid_node_ptr = grid_node_ptr->parent_node_;
     }
+    // std::cout<< "grid_path " << grid_path.size() << std::endl;
 
     for (auto &ptr: grid_path) {
         if (ptr->trajectory_ == nullptr) {
@@ -202,13 +209,10 @@ vec_E<Vec3f> KinoAStar<Graph, State>::getPath() {
             path.emplace_back(*iter);
         }
     }
-
     reverse(path.begin(), path.end());
+    // std::cout<< "path.size() inside getPath() is " << path.size() << std::endl;
 
     return path;
 }
-
-
-
 
 template class KinoAStar<GridGraph3D, RobotNode>;

@@ -445,6 +445,8 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
     printStateVector(sg_whole_.X_temp_);
     std::cout << "===========================" << std::endl;*/
 
+
+
   //////////////////////////////////////////////////////////////////////////
   ///////////////// Solve with GUROBI Safe trajectory /////////////////////
   //////////////////////////////////////////////////////////////////////////
@@ -592,9 +594,20 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   sg_safe_.setFactorInitialAndFinalAndIncrement(new_init_safe, new_final_safe, par_.increment_safe);
 
   planner_initialized_ = true;
-  std::cout << bold << blue << "infeasibility_counter_ " << feasibility_counter_ << reset << std::endl;
+  std::cout << bold << blue << "infeasibility_counter = " << feasibility_counter_ << reset << std::endl;
   std::cout << bold << blue << "Replanning took " << replanCB_t.ElapsedMs() << " ms" << reset << std::endl;
 
+
+  if (initiate_timer)
+  {
+    timer_logger.open("/home/ros/ros_ws/src/faster/faster/src/altenrnative_timer.txt", std::ofstream::out | std::ofstream::trunc);
+    timer_logger.close();
+    initiate_timer = false;
+  }
+
+  timer_logger.open("/home/ros/ros_ws/src/faster/faster/src/altenrnative_timer.txt", std::ios_base::app);
+  timer_logger << replanCB_t.ElapsedMs()  << "\n"; //TODO: print the whole path
+  timer_logger.close();
   return;
 }
 

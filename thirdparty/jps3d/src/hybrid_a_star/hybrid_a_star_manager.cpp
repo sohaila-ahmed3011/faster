@@ -56,23 +56,24 @@ bool Planner::plan(Vec3f &start,  Vec3f &goal, Vec3f _start_velocity_) {
     target_pt[2] = 0;
     // _start_velocity_ = Vec3f(0,0,0);
     std::function<huristics_cost_t(Vec3f, Vec3f, Vec3f)> heuristic_optimal_bvp = &optimal_boundary_value_problem<Vec3f>;
-    //TrajectoryStatePtr*** trajectory_lib = _hybrid_a_star->trajectoryLibrary(start, _start_velocity_, target_pt, heuristic_optimal_bvp);
-    bool solved_bool = _hybrid_a_star->searchPath(start, target_pt, heuristic_optimal_bvp);
-
+    // TrajectoryStatePtr*** trajectory_lib = _hybrid_a_star->trajectoryLibrary(start, _start_velocity_, target_pt, heuristic_optimal_bvp);
+    bool solved_bool = _hybrid_a_star->searchPath(start, target_pt, heuristic_optimal_bvp); 
     std::function<huristics_cost_t(RobotNode::Ptr,  RobotNode::Ptr)> heuristic = &calculate_euclidean_dis<RobotNode::Ptr>;
     
-    if(graph_ != nullptr){
-      graph_->reset(); 
-    }
 
-    //graph_->InitGridMap(_map_lower, _map_upper, Vector3i(_max_x_id, _max_y_id, _max_z_id), _map_resolution);
+
+    // graph_->InitGridMap(_map_lower, _map_upper, Vector3i(_max_x_id, _max_y_id, _max_z_id), _map_resolution);
     // graph_->InitGridMap(_map_resolution, _max_x_id, _max_y_id, params);  // result in unknown console output
   
     return solved_bool;
 }
 
 vec_E<Vec3f> Planner::getPath(){
-    return _hybrid_a_star->getPath();
+    auto finalPath = _hybrid_a_star->getPath();
+    if(graph_ != nullptr){
+        graph_->reset(); 
+    }
+    return finalPath;
 }
 
 void Planner::setObstacles(){

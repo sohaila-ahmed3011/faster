@@ -163,7 +163,6 @@ void JPS_Manager::performAStar(Eigen::Vector3d start,Eigen::Vector3d goal)
 void JPS_Manager::performJPS(Eigen::Vector3d start,Eigen::Vector3d goal)
 {
   std::cout << "Hybrid A* took more time than required, shifting to JPS now ..." << std::endl;
-  // printInfo_ = "JPS";
   // Set start and goal free
   const Veci<3> start_int = map_util_->floatToInt(start);
   const Veci<3> goal_int = map_util_->floatToInt(goal);
@@ -203,9 +202,14 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
      apply JPS instead
   */ 
   performAStar(start, goal);
-  if (!a_star_completed)
+  // if (!a_star_completed)
+  // {
+  //   performJPS(start, goal);
+  // }
+  std::cout << "path_.size() " << path_.size() << std::endl;
+  for (auto pose:path_)
   {
-    performJPS(start, goal);
+    std::cout << pose.transpose() << std::endl;
   }
 
   if (Jps_completed || a_star_completed)  // There is a solution

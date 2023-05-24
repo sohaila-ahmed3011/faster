@@ -66,6 +66,8 @@ public:
   void resetInitialization();
 
 private:
+  std::ofstream timer_logger;
+  bool initiate_timer {true};
   int feasibility_counter_{0};
   state M_;
   std::deque<state> plan_;
