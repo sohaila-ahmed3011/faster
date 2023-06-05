@@ -14,7 +14,9 @@
 		<remap from="~occup_grid" to="global_mapper_ros/occupancy_grid"/> <!--PointCloud of the occupancy grid-->
 		<remap from="~unknown_grid" to="global_mapper_ros/unknown_grid"/> <!--PointCloud of the unknown map-->
 		<remap from="~pcloud" to="camera/cloud"/> <!--HARDWARE:    camera/depth/color/points, SIMULATION:  camera/cloud -->
+		<!-- <remap from="/velodyne_points" to="velodyne/cloud"/> -->
 		<!-- <remap from="~odom" to="odometry/local_filtered"/> -->
+		<!-- <remap from="/cmd_vel" to="/$(arg quad)/cmd_vel"/> -->
 
 		<!-- Publications -->
 		<remap from="~traj" to="traj"/>

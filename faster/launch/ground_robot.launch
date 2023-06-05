@@ -3,7 +3,11 @@
 	<arg name="name" default="JA01"/>
 	<arg name="goal_topic" default="goal"/>
 
-	 <include file="$(find multi_jackal_tutorials)/launch/one_jackal.launch">
+	 <!-- <include file="$(find multi_jackal_tutorials)/launch/one_jackal.launch">
+	      <arg name="world_name" value="density01seed0.world"/>
+	  </include>  -->
+	  
+	 <include file="$(find scout_gazebo_sim)/launch/scout_mini_playpen.launch">
 	      <arg name="world_name" value="density01seed0.world"/>
 	  </include> 
 
@@ -11,6 +15,6 @@
         type="goal_odom_to_cmd_vel_state.py" 
         name="goal_odom_to_cmd_vel_state" 
         output="screen"
-        args="0 0 0 0 0 0 $(arg name)/camera_link $(arg name)/camera 100" />
+        args="0 0 0.0377 0 0 0 $(arg name)/velodyne_base_link $(arg name)/velodyne 100" />
 
 </launch>
