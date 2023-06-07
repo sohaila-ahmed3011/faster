@@ -27,7 +27,7 @@ private:
     int discretize_step_ = 3;
     double max_input_acc_ = 1.0;
     double time_interval_ = 1.0;
-    int time_step_ = 2; //50
+    int time_step_ = 30; //50
 };
 
 

@@ -36,7 +36,7 @@ Faster::Faster(parameters par) : par_(par)
   mtx_initial_cond.unlock();
 
   // Setup of jps_manager
-  std::cout << "par_.wdx / par_.res =" << par_.wdx / par_.res << std::endl;
+
   jps_manager_.setNumCells((int)par_.wdx / par_.res, (int)par_.wdy / par_.res, (int)par_.wdz / par_.res);
   jps_manager_.setFactorJPS(par_.factor_jps);
   jps_manager_.setResolution(par_.res);
@@ -44,7 +44,6 @@ Faster::Faster(parameters par) : par_(par)
   jps_manager_.setZGroundAndZMax(par_.z_ground, par_.z_max);
   // jps_manager_.setVisual(par_.visual);
   jps_manager_.setDroneRadius(par_.drone_radius);
-
 
   double max_values[3] = { par_.v_max, par_.a_max, par_.j_max };
 
@@ -359,7 +358,6 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   bool solvedjps = false;
   MyTimer timer_jps(true);
 
-
   vec_Vecf<3> JPSk = jps_manager_.solveJPS3D(A.pos, G.pos, &solvedjps, 1);
 
   if (solvedjps == false)
@@ -421,8 +419,8 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
 
     if (solved_whole == false)
     {
-      feasibility_counter_+=1;
       std::cout << bold << red << "No solution found for the whole trajectory" << reset << std::endl;
+      feasibility_counter_++;
       return;
     }
 
@@ -444,8 +442,6 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   /*  std::cout << "This is the WHOLE TRAJECTORY" << std::endl;
     printStateVector(sg_whole_.X_temp_);
     std::cout << "===========================" << std::endl;*/
-
-
 
   //////////////////////////////////////////////////////////////////////////
   ///////////////// Solve with GUROBI Safe trajectory /////////////////////
@@ -533,8 +529,8 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
 
     if (solved_safe == false)
     {
-      feasibility_counter_+=1;
       std::cout << red << "No solution found for the safe path" << reset << std::endl;
+      feasibility_counter_++;
       return;
     }
 
@@ -594,7 +590,7 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   sg_safe_.setFactorInitialAndFinalAndIncrement(new_init_safe, new_final_safe, par_.increment_safe);
 
   planner_initialized_ = true;
-  std::cout << bold << blue << "infeasibility_counter = " << feasibility_counter_ << reset << std::endl;
+
   std::cout << bold << blue << "Replanning took " << replanCB_t.ElapsedMs() << " ms" << reset << std::endl;
 
 
@@ -608,6 +604,8 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   timer_logger.open("/home/ros/ros_ws/src/faster/faster/src/altenrnative_timer.txt", std::ios_base::app);
   timer_logger << replanCB_t.ElapsedMs()  << "\n"; //TODO: print the whole path
   timer_logger.close();
+
+  std::cout << "Total Number of Failure  is " << feasibility_counter_ << std::endl; 
   return;
 }
 

@@ -18,6 +18,8 @@ namespace hagen_planner
             GLX_SIZE_ = grid_size_[0];
             GLY_SIZE_ = grid_size_[1];
             GLZ_SIZE_ = grid_size_[2];
+            /////////////////////////////////////Hard Coded////////////////
+            GLZ_SIZE_ = 1;
             GLXY_SIZE_ = GLX_SIZE_ * GLY_SIZE_;
             GLYZ_SIZE_ = GLY_SIZE_ * GLZ_SIZE_;
             GLXYZ_SIZE_ = GLX_SIZE_ * GLYZ_SIZE_;

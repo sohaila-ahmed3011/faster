@@ -43,7 +43,7 @@ class Planner {
         int max_iteration;
 
     private:
-        double _map_resolution {0.15}, _inv_map_resolution;
+        double _map_resolution , _inv_map_resolution;
         double _x_size, _y_size, _z_size;
         Vec3f _start_pt, _start_velocity;
         bool _has_map = false;
@@ -60,6 +60,7 @@ class Planner {
         std::deque<Eigen::Vector3d> waypoints_list;
         nav_msgs::Odometry odom;
         bool initBool_ {true};
+        int obsCount, freeCount;
 
 };
 #endif //ROBOT_PLANNER_INI

@@ -103,12 +103,12 @@ bool KinoAStar<Graph, State>::searchPath(const Vec3f &start_pt, const Vec3f &end
             }
         }
         
-        // ros::Duration use_time = ros::Time::now() - start_time;
-        // if (use_time.toSec() > 0.1)
-        // {
-        //     // ROS_ERROR_STREAM("Hybrid A*  took more than required ");
-        //     return false;
-        // }
+        ros::Duration use_time = ros::Time::now() - start_time;
+        if (use_time.toSec() > 0.03)
+        {
+            ROS_ERROR_STREAM("Hybrid A*  took more than required ");
+            return false;
+        }
     }
     ROS_WARN_STREAM("Hybrid A* failed to search path!");
     return false;
@@ -137,7 +137,8 @@ TrajectoryStatePtr ***KinoAStar<Graph, State>::trajectoryLibrary(const Vec3f &st
                 vector<Vector3d> Velocity;
                 acc_input(0) = double(-max_input_acc_ + i * (2 * max_input_acc_ / double(discretize_step_)));
                 acc_input(1) = double(-max_input_acc_ + j * (2 * max_input_acc_ / double(discretize_step_)));
-                acc_input(2) = double(k * (2 * max_input_acc_ / double(discretize_step_)));
+                // acc_input(2) = double(k * (2 * max_input_acc_ / double(discretize_step_)));
+                acc_input(2) = 0;
 
                 pos(0) = start_pt(0);
                 pos(1) = start_pt(1);
@@ -164,6 +165,7 @@ TrajectoryStatePtr ***KinoAStar<Graph, State>::trajectoryLibrary(const Vec3f &st
                     double coord_z = pos(2);
                     if (graph_->isObsFree(coord_x, coord_y, coord_z) != 1) {
                         collision = true;
+                        cout << "###################THIS IS A COLLISION NODE########################" << endl;
                     }
                 }
 
@@ -212,7 +214,21 @@ vec_E<Vec3f> KinoAStar<Graph, State>::getPath() {
     reverse(path.begin(), path.end());
     // std::cout<< "path.size() inside getPath() is " << path.size() << std::endl;
 
-    return path;
+    if (path.size() < 3)
+    {
+        return path;
+    }
+    // Hybrid A star generates a lot of points 
+    // thus, we retrieve only four points of them for 
+    // convex decomposition    
+    vec_E<Vec3f> final_path;
+    final_path.emplace_back(path.front());
+    final_path.emplace_back(*(path.begin() + path.size() / 2));
+    final_path.emplace_back(path.back());
+    cout << "The size of Hybrid A* original path is "<< path.size() <<" while the filtered one is " << final_path.size() << endl;
+    return final_path;
+  
+
 }
 
 template class KinoAStar<GridGraph3D, RobotNode>;
