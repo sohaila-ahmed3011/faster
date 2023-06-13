@@ -322,6 +322,7 @@ void Faster::push_job(Faster * worker, state A, state &E, bool &solvedjps, vec_E
   ioService.post(boost::bind(&task_t::operator(), task));
 }
 
+// read the avalaible threads for parralel computing 
 bool Faster::init(){
     service_work = boost::make_unique<boost::asio::io_service::work>(ioService);
     std::cout<< "Number of threads that can support this system: " << boost::thread::hardware_concurrency() << std::endl;
@@ -365,73 +366,79 @@ void Faster::multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Po
   //////////////////////////////////////////////////////////////////////////
   ///////////////// Generate  E, E1, and E2 points /////////////////////////
   //////////////////////////////////////////////////////////////////////////
-    deleteVertexes(JPS_whole, par_.max_poly_whole);
-    E.pos = JPS_whole[JPS_whole.size() - 1];
+  deleteVertexes(JPS_whole, par_.max_poly_whole);
+  E.pos = JPS_whole[JPS_whole.size() - 1];
 
-    // Generate two altenative points dependent on goal points
-    state E1, E2;
-    int shiftDeg  = 10;  //angle between goal and other two points in degrees
-    double shiftRad  = shiftDeg * (3.1415 / 180);
-    Eigen::Vector3d currPos = state_.pos;
-    
-    double currTheta = atan2(E.pos[1] - currPos[1], E.pos[0] - currPos[0]);
-    double theta1 = currTheta - shiftRad; //E1
-    double theta2 = currTheta + shiftRad; //E2
+  // Generate two altenative points dependent on goal points
+  state E1, E2;
+  int shiftDeg  = 10;  //angle between goal and other two points in degrees
+  double shiftRad  = shiftDeg * (3.1415 / 180);
+  Eigen::Vector3d currPos = state_.pos;
+  
+  double currTheta = atan2(E.pos[1] - currPos[1], E.pos[0] - currPos[0]);
+  double theta1 = currTheta - shiftRad; //E1
+  double theta2 = currTheta + shiftRad; //E2
 
-    E1.setPos( currPos[0]+ ra * cos(theta1), currPos[1]+ ra * sin(theta1), E.pos[2]);
-    E2.setPos( currPos[0]+ ra * cos(theta2), currPos[1]+ ra * sin(theta2), E.pos[2]);
+  E1.setPos( currPos[0]+ ra * cos(theta1), currPos[1]+ ra * sin(theta1), E.pos[2]);
+  E2.setPos( currPos[0]+ ra * cos(theta2), currPos[1]+ ra * sin(theta2), E.pos[2]);
 
-    bool solvedjps1;
-    vec_E<Polyhedron<3>> poly_tmp_1;
-    std::vector<LinearConstraint3D> l_constraints_whole_1;  // Polytope (Linear) constraints for E1
+  bool solvedjps1;
+  vec_E<Polyhedron<3>> poly_tmp_1;
+  std::vector<LinearConstraint3D> l_constraints_whole_1;  // Polytope (Linear) constraints for E1
 
-    bool solvedjps2;
-    vec_E<Polyhedron<3>> poly_tmp_2;
+  bool solvedjps2;
+  vec_E<Polyhedron<3>> poly_tmp_2;
     std::vector<LinearConstraint3D> l_constraints_whole_2;  // Polytope (Linear) constraints for E2
 
   //////////////////////////////////////////////////////////////////////////
   ///////////////////////  Threads Implementation //////////////////////////
   //////////////////////////////////////////////////////////////////////////
 
-    if (option == 2){
-      // MyTimer check1(true);
-      // initiate the threads only once
-      if (initiate_threads){
-        Faster::init();
-        initiate_threads = false;
-      }
-      
-      JPS_Manager jps_manager_1 = jps_manager_;
-      JPS_Manager jps_manager_2 = jps_manager_;
-      push_job(this, A, E1, solvedjps1, poly_tmp_1, l_constraints_whole_1, jps_manager_1);
-      push_job(this, A, E2, solvedjps2, poly_tmp_2, l_constraints_whole_2, jps_manager_2);
+  if (option == 2){
+    // MyTimer check1(true);
+    // initiate the threads only once
+    if (initiate_threads){
+      Faster::init();
+      initiate_threads = false;
+    }
+        std::cout << "############### DEBUG 1############"<< std::endl;
 
-      boost::wait_for_all(pending_data.begin(), pending_data.end());
-      jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
-      total_volume_single += jps_manager_.getVolume();
-      total_volume_multi += jps_manager_.getVolume();
-      for(auto result : pending_data){
-        poly_whole_out.insert(poly_whole_out.end(), result.get().polys.begin(), result.get().polys.end());
-        l_constraints_whole_.insert(l_constraints_whole_.end(), result.get().constraints.begin(), result.get().constraints.end());
-      }
-      pending_data.clear();
-      // std::cout << bold << blue << "multi  thread took " << check1.ElapsedMs() << " ms" << reset << std::endl;
+    JPS_Manager jps_manager_1 = jps_manager_;
+    JPS_Manager jps_manager_2 = jps_manager_;
+    push_job(this, A, E1, solvedjps1, poly_tmp_1, l_constraints_whole_1, jps_manager_1);
+    push_job(this, A, E2, solvedjps2, poly_tmp_2, l_constraints_whole_2, jps_manager_2);
+    std::cout << "############### DEBUG 2 ############"<< std::endl;
+    boost::wait_for_all(pending_data.begin(), pending_data.end());
+    std::cout << "############### DEBUG 3 ############"<< std::endl;
+    jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
+    std::cout << "############### DEBUG 4 ############"<< std::endl;
+
+    total_volume_single += jps_manager_.getVolume();
+    total_volume_multi += jps_manager_.getVolume();
+
+    std::cout << "############### DEBUG 4 ############"<< std::endl;
+    for(auto result : pending_data){
+      poly_whole_out.insert(poly_whole_out.end(), result.get().polys.begin(), result.get().polys.end());
+      l_constraints_whole_.insert(l_constraints_whole_.end(), result.get().constraints.begin(), result.get().constraints.end());
     }
-    else if(option == 1){
-      // MyTimer check2(true);
-      multi_plan_any_point(A, E1, solvedjps1, poly_tmp_1, l_constraints_whole_1, jps_manager_);
-      multi_plan_any_point(A, E2, solvedjps2, poly_tmp_2, l_constraints_whole_2, jps_manager_);
-      jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
-      total_volume_multi += jps_manager_.getVolume();
-      total_volume_single += jps_manager_.getVolume();
-      poly_whole_out.insert(poly_whole_out.end(), poly_tmp_1.begin(), poly_tmp_1.end());
-      poly_whole_out.insert(poly_whole_out.end(), poly_tmp_2.begin(), poly_tmp_2.end());
-      l_constraints_whole_.insert(l_constraints_whole_.end(), l_constraints_whole_1.begin(), l_constraints_whole_1.end());
-      l_constraints_whole_.insert(l_constraints_whole_.end(), l_constraints_whole_2.begin(), l_constraints_whole_2.end());
-      // std::cout << bold << blue << "single thread took " << check2.ElapsedMs() << " ms" << reset << std::endl;
-    }
+    pending_data.clear();
+    // std::cout << bold << blue << "multi  thread took " << check1.ElapsedMs() << " ms" << reset << std::endl;
+  }
+  else if(option == 1){
+    // MyTimer check2(true);
+    multi_plan_any_point(A, E1, solvedjps1, poly_tmp_1, l_constraints_whole_1, jps_manager_);
+    multi_plan_any_point(A, E2, solvedjps2, poly_tmp_2, l_constraints_whole_2, jps_manager_);
+    jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
+    total_volume_multi += jps_manager_.getVolume();
+    total_volume_single += jps_manager_.getVolume();
+    poly_whole_out.insert(poly_whole_out.end(), poly_tmp_1.begin(), poly_tmp_1.end());
+    poly_whole_out.insert(poly_whole_out.end(), poly_tmp_2.begin(), poly_tmp_2.end());
+    l_constraints_whole_.insert(l_constraints_whole_.end(), l_constraints_whole_1.begin(), l_constraints_whole_1.end());
+    l_constraints_whole_.insert(l_constraints_whole_.end(), l_constraints_whole_2.begin(), l_constraints_whole_2.end());
+    // std::cout << bold << blue << "single thread took " << check2.ElapsedMs() << " ms" << reset << std::endl;
+  }
     
-   }
+  }
 
 
 void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E<Polyhedron<3>>& poly_safe_out,

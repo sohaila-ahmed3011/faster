@@ -106,7 +106,7 @@ private:
   std::unique_ptr<boost::asio::io_service::work> service_work;
 
   // 0 for single point, 1 for multi points, 2 for multi thread
-  int option {0};
+  int option {2};
   bool initiate_threads {true}; // flag for the threads
   bool initiate_time {true}; // flag for time files
   bool initiate_volume {true}; // flag for volume files

@@ -41,6 +41,26 @@ JPS_Manager::JPS_Manager()
   hybrid_a_star_ptr_ = std::make_shared<Planner>();
 }
 
+JPS_Manager::JPS_Manager(const JPS_Manager& other) {
+    factor_jps_ = other.factor_jps_;
+    res_ = other.res_;
+    inflation_jps_ = other.inflation_jps_;
+    z_ground_ = other.z_ground_;
+    z_max_ = other.z_max_;
+    drone_radius_ = other.drone_radius_;
+    cells_x_ = other.cells_x_;
+    cells_y_ = other.cells_y_;
+    cells_z_ = other.cells_z_;
+    visual_ = other.visual_;
+    ellip_decomp_util_ = other.ellip_decomp_util_;
+    map_util_ = other.map_util_;
+    planner_ptr_ = std::make_unique<JPSPlanner3D>(*other.planner_ptr_);
+    // planner_ptr = other.planner_ptr_;
+    vec_o_ = other.vec_o_;
+    vec_uo_ = other.vec_uo_;
+}
+
+
 void JPS_Manager::setNumCells(int cells_x, int cells_y, int cells_z)
 {
   cells_x_ = cells_x;
