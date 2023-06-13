@@ -16,7 +16,7 @@ class MPCControl():
         print("Initializing the MPC controller")
         self.pub_velocity = rospy.Publisher('jackal_velocity_controller/cmd_vel', Twist, queue_size=1, latch=True)
         self.pubState = rospy.Publisher('state', State, queue_size=1, latch=False)
-        self.timer = rospy.Timer(rospy.Duration(0.05), self.execute_cb)
+        self.timer = rospy.Timer(rospy.Duration(0.08), self.execute_cb)
         self.i = 0
         self.set_q_init = None
         self.q = None 
@@ -111,17 +111,20 @@ class MPCControl():
         
         if(self.odom_pose is not None):
             self.error = np.linalg.norm(self.odom_pose - self.target_pose)
+            # This is the terminal point as specified in each scenario 
+            terminal_goal = np.array([10,0,0])
+            terminal_error = np.linalg.norm(self.odom_pose[:2] - terminal_goal[:2])
 
             self.odom_pose_2D =  np.array([self.odom_pose[0], self.odom_pose[1]])
             self.target_pose_2D =  np.array([self.target_pose[0], self.target_pose[1]])
             self.pos_error = np.linalg.norm(self.odom_pose_2D - self.target_pose_2D)
             
-            print("Error: ", self.error, " current state : " , self.odom_pose, "target state: ", self.target_pose)
-            print("Position error: ", self.pos_error)
+            # print("Error: ", self.error, " current state : " , self.odom_pose, "target state: ",  terminal_goal)
+            # print("Position error: ", self.pos_error)
 
-            # err = open('/home/ros/ros_ws/src/faster/faster/scripts/mpc_error.txt', 'a')
-            # err.write(str(self.error)+"\n")
-            # err.close()
+            err = open('/home/ros/ros_ws/src/faster/faster/scripts/mpc_error.txt', 'a')
+            err.write(str(terminal_error)+"\n")
+            err.close()
 
             tar = open('/home/ros/ros_ws/src/faster/faster/scripts/target_pose.txt', 'a')
             tar.write(str(self.target_pose)+"\n")
