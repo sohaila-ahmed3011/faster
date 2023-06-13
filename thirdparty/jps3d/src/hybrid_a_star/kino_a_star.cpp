@@ -165,7 +165,7 @@ TrajectoryStatePtr ***KinoAStar<Graph, State>::trajectoryLibrary(const Vec3f &st
                     double coord_z = pos(2);
                     if (graph_->isObsFree(coord_x, coord_y, coord_z) != 1) {
                         collision = true;
-                        cout << "###################THIS IS A COLLISION NODE########################" << endl;
+                        // cout << "###################THIS IS A COLLISION NODE########################" << endl;
                     }
                 }
 
