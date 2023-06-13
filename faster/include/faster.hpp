@@ -81,7 +81,8 @@ public:
  void push_job(Faster * worker,state A, state &E, bool &solvedjps, vec_E<Polyhedron<3>> &poly_tmp, 
                                   std::vector<LinearConstraint3D> &l_constraints_whole_, JPS_Manager &jps_manager_); 
  
-  void updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_unk);
+  void updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_unk,  
+                      nav_msgs::OccupancyGridPtr costmap_msg_ptr, Vec3f _start_velocity_);
   bool getNextGoal(state& next_goal);
   void getState(state& data);
   void getG(state& G);  
