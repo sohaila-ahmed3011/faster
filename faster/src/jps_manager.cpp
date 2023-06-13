@@ -226,7 +226,7 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
      if not converged in a predifned time (30 ms for example),
      apply JPS instead
   */ 
-  performAStar(start, goal);
+  // performAStar(start, goal);
   if (!a_star_completed)
   {
     performJPS(start, goal);
