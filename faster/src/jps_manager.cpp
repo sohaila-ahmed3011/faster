@@ -129,6 +129,16 @@ void JPS_Manager::cvxEllipsoidDecomp(vec_Vecf<3>& path, int type_space, std::vec
   // Convert to inequality constraints Ax < b
   // std::vector<polytope> polytopes;
   auto polys = ellip_decomp_util_.get_polyhedrons();
+  auto ellipsoids = ellip_decomp_util_.get_ellipsoids();
+
+  total_poly_area_ = 0;
+  
+
+  for (size_t i = 0; i < path.size() - 1; i++)
+    {
+      total_poly_area_ += ellipsoids[i].volume();
+    }
+
 
   l_constraints.clear();
 
@@ -164,7 +174,7 @@ void JPS_Manager::updateJPSMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr, Eigen
 
   // auto start_time = std::chrono::steady_clock::now(); // Get start time
   // TODO: don't update the two maps. just one of them.
-  hybrid_a_star_ptr_->setmap(ocubptr, cells_x_, cells_y_, cells_z_, factor_jps_ * res_ ); //map to hybrid a star
+  // hybrid_a_star_ptr_->setmap(ocubptr, cells_x_, cells_y_, cells_z_, factor_jps_ * res_ ); //map to hybrid a star
 
   map_util_->readMap(pclptr, cells_x_, cells_y_, cells_z_, factor_jps_ * res_, center_map, z_ground_, z_max_,
                      inflation_jps_);  // Map read to jps

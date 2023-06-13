@@ -148,7 +148,7 @@ FasterRos::FasterRos(ros::NodeHandle nh) : nh_(nh)
   // Subscribers
   occup_grid_sub_.subscribe(nh_, "occup_grid", 1);
   unknown_grid_sub_.subscribe(nh_, "unknown_grid", 1);
-  _cost_map_sub = nh.subscribe("/projected_map", 1, &FasterRos::costMapCallBack, this);
+  // _cost_map_sub = nh.subscribe("/projected_map", 1, &FasterRos::costMapCallBack, this);
   sync_.reset(new Sync(MySyncPolicy(1), occup_grid_sub_, unknown_grid_sub_));
   sync_->registerCallback(boost::bind(&FasterRos::mapCB, this, _1, _2));
   sub_goal_ = nh_.subscribe("term_goal", 1, &FasterRos::terminalGoalCB, this);

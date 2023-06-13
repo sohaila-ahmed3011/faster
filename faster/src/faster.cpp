@@ -401,22 +401,17 @@ void Faster::multi_plan_E(state A, state &E, state &G, bool &solvedjps, vec_E<Po
       Faster::init();
       initiate_threads = false;
     }
-        std::cout << "############### DEBUG 1############"<< std::endl;
 
     JPS_Manager jps_manager_1 = jps_manager_;
     JPS_Manager jps_manager_2 = jps_manager_;
     push_job(this, A, E1, solvedjps1, poly_tmp_1, l_constraints_whole_1, jps_manager_1);
     push_job(this, A, E2, solvedjps2, poly_tmp_2, l_constraints_whole_2, jps_manager_2);
-    std::cout << "############### DEBUG 2 ############"<< std::endl;
     boost::wait_for_all(pending_data.begin(), pending_data.end());
-    std::cout << "############### DEBUG 3 ############"<< std::endl;
     jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
-    std::cout << "############### DEBUG 4 ############"<< std::endl;
-
     total_volume_single += jps_manager_.getVolume();
     total_volume_multi += jps_manager_.getVolume();
 
-    std::cout << "############### DEBUG 4 ############"<< std::endl;
+
     for(auto result : pending_data){
       poly_whole_out.insert(poly_whole_out.end(), result.get().polys.begin(), result.get().polys.end());
       l_constraints_whole_.insert(l_constraints_whole_.end(), result.get().constraints.begin(), result.get().constraints.end());
@@ -547,7 +542,7 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
     deleteVertexes(JPS_whole, par_.max_poly_whole);
     E.pos = JPS_whole[JPS_whole.size() - 1];
     jps_manager_.cvxEllipsoidDecomp(JPS_whole, OCCUPIED_SPACE, l_constraints_whole_, poly_whole_out);
-    total_volume_single += jps_manager_.getVolume();
+    total_volume_multi += jps_manager_.getVolume();
   // }
   
     // Check if G is inside poly_whole
@@ -628,41 +623,10 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   volume_logger << total_volume_multi << "\n";
   volume_logger.close();
   }
-  // std::cout<<total_volume_single<< " | "<< total_volume_multi << std::endl;
+
   total_volume_single = 0;
   total_volume_multi = 0;
   
-  // write computational time
-  if (option == 0){
-    if (initiate_time){
-        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_single_point.txt", std::ofstream::out | std::ofstream::trunc);
-        time_logger.close();
-        initiate_time = false;
-      }
-  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_single_point.txt", std::ios_base::app);
-  time_logger << replanCB_t.ElapsedMs() << "\n";
-  time_logger.close();
-  
-  }else if (option == 1){
-    if (initiate_time){
-        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi.txt", std::ofstream::out | std::ofstream::trunc);
-        time_logger.close();
-        initiate_time = false;
-      }
-  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi.txt", std::ios_base::app);
-  time_logger << replanCB_t.ElapsedMs() << "\n";
-  time_logger.close();
-  
-  }else if (option == 2){
-    if (initiate_time){
-        time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi_thread.txt", std::ofstream::out | std::ofstream::trunc);
-        time_logger.close();
-        initiate_time = false;
-      }
-  time_logger.open("/home/ros/ros_ws/src/faster/faster/src/replanCB_t_multi_thread.txt", std::ios_base::app);
-  time_logger << replanCB_t.ElapsedMs() << "\n";
-  time_logger.close();
-  }
 
   /*  std::cout << "This is the WHOLE TRAJECTORY" << std::endl;
     printStateVector(sg_whole_.X_temp_);
