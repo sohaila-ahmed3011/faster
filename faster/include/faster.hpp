@@ -84,11 +84,14 @@ public:
   void updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_unk);
   bool getNextGoal(state& next_goal);
   void getState(state& data);
-  void getG(state& G);
+  void getG(state& G);  
   void setTerminalGoal(state& term_goal);
   void resetInitialization();
 
 private:
+  std::ofstream timer_logger;
+  bool initiate_timer {true};
+  int feasibility_counter_{0};
   state M_;
   std::deque<state> plan_;
 

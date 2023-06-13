@@ -148,6 +148,7 @@ FasterRos::FasterRos(ros::NodeHandle nh) : nh_(nh)
   // Subscribers
   occup_grid_sub_.subscribe(nh_, "occup_grid", 1);
   unknown_grid_sub_.subscribe(nh_, "unknown_grid", 1);
+  _cost_map_sub = nh.subscribe("/projected_map", 1, &FasterRos::costMapCallBack, this);
   sync_.reset(new Sync(MySyncPolicy(1), occup_grid_sub_, unknown_grid_sub_));
   sync_->registerCallback(boost::bind(&FasterRos::mapCB, this, _1, _2));
   sub_goal_ = nh_.subscribe("term_goal", 1, &FasterRos::terminalGoalCB, this);
@@ -227,6 +228,9 @@ void FasterRos::stateCB(const snapstack_msgs::State& msg)
   state_tmp.setPos(msg.pos.x, msg.pos.y, msg.pos.z);
   state_tmp.setVel(msg.vel.x, msg.vel.y, msg.vel.z);
   state_tmp.setAccel(0.0, 0.0, 0.0);
+
+  _start_velocity_ = Vec3f(msg.vel.x, msg.vel.y, msg.vel.z);
+
   double roll, pitch, yaw;
   quaternion2Euler(msg.quat, roll, pitch, yaw);
   state_tmp.setYaw(yaw);
@@ -476,6 +480,10 @@ void FasterRos::clearMarkerColoredTraj()
   // actual_trajID_ = 0;
 }
 
+void FasterRos::costMapCallBack(const nav_msgs::OccupancyGridPtr &costmap_msg_ptr){
+    _cost_map_ = costmap_msg_ptr;
+}
+
 // Occupied CB
 void FasterRos::mapCB(const sensor_msgs::PointCloud2::ConstPtr& pcl2ptr_map_ros,
                       const sensor_msgs::PointCloud2::ConstPtr& pcl2ptr_unk_ros)
@@ -487,7 +495,7 @@ void FasterRos::mapCB(const sensor_msgs::PointCloud2::ConstPtr& pcl2ptr_map_ros,
   pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_unk(new pcl::PointCloud<pcl::PointXYZ>);
   pcl::fromROSMsg(*pcl2ptr_unk_ros, *pclptr_unk);
 
-  faster_ptr_->updateMap(pclptr_map, pclptr_unk);
+  faster_ptr_->updateMap(pclptr_map, pclptr_unk, _cost_map_, _start_velocity_);
 }
 
 void FasterRos::pubState(const state& data, const ros::Publisher pub)

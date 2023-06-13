@@ -245,6 +245,8 @@ bool JPSPlanner<Dim>::plan(const Vecf<Dim> &start, const Vecf<Dim> &goal, decima
 
   const Veci<Dim> dim = map_util_->getDim();
 
+  // _hybrid_a_star = std::make_shared<HybridAStar3D>();
+  
   if (Dim == 3)
   {
     graph_search_ =

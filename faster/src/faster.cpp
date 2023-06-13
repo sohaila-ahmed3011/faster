@@ -7,7 +7,6 @@
  * -------------------------------------------------------------------------- */
 
 #include "faster.hpp"
-
 #include <pcl/kdtree/kdtree.h>
 #include <Eigen/StdVector>
 #include <stdio.h>
@@ -50,7 +49,7 @@ Faster::Faster(parameters par) : par_(par)
   mtx_initial_cond.unlock();
 
   // Setup of jps_manager
-  std::cout << "par_.wdx / par_.res =" << par_.wdx / par_.res << std::endl;
+
   jps_manager_.setNumCells((int)par_.wdx / par_.res, (int)par_.wdy / par_.res, (int)par_.wdz / par_.res);
   jps_manager_.setFactorJPS(par_.factor_jps);
   jps_manager_.setResolution(par_.res);
@@ -109,7 +108,8 @@ void Faster::createMoreVertexes(vec_Vecf<3>& path, double d)
   }
 }
 
-void Faster::updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_unk)
+void Faster::updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_unk,  
+                      nav_msgs::OccupancyGridPtr costmap_msg_ptr, Vec3f _start_velocity_)
 {
   mtx_map.lock();
   mtx_unk.lock();
@@ -118,7 +118,7 @@ void Faster::updateMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr_map, pcl::Poin
   pclptr_map_ = pclptr_map;
   pclptr_unk_ = pclptr_unk;
 
-  jps_manager_.updateJPSMap(pclptr_map_, state_.pos);  // Update even where there are no points
+  jps_manager_.updateJPSMap(pclptr_map_, state_.pos, costmap_msg_ptr, _start_velocity_);  // Update even where there are no points
 
 
 
@@ -748,6 +748,7 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
     if (solved_safe == false)
     {
       std::cout << red << "No solution found for the safe path" << reset << std::endl;
+      feasibility_counter_++;
       return;
     }
 
@@ -809,7 +810,20 @@ void Faster::replan(vec_Vecf<3>& JPS_safe_out, vec_Vecf<3>& JPS_whole_out, vec_E
   planner_initialized_ = true;
   
   std::cout << bold << blue << "Replanning took " << replanCB_t.ElapsedMs() << " ms" << reset << std::endl;
-  
+
+
+  if (initiate_timer)
+  {
+    timer_logger.open("/home/ros/ros_ws/src/faster/faster/src/altenrnative_timer.txt", std::ofstream::out | std::ofstream::trunc);
+    timer_logger.close();
+    initiate_timer = false;
+  }
+
+  timer_logger.open("/home/ros/ros_ws/src/faster/faster/src/altenrnative_timer.txt", std::ios_base::app);
+  timer_logger << replanCB_t.ElapsedMs()  << "\n"; //TODO: print the whole path
+  timer_logger.close();
+
+  std::cout << "Total Number of Failure  is " << feasibility_counter_ << std::endl; 
   return;
 }
 

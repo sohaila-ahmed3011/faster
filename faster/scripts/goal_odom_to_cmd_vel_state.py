@@ -52,9 +52,9 @@ class GoalToCmdVel:
         self.timer = rospy.Timer(rospy.Duration(0.1), self.cmdVelCB)
 
         self.kv =1.0
-        self.kdist = 2.5#0.8
-        self.kw =1.0
-        self.kyaw = 2.0
+        self.kdist = 0.8 #0.8
+        self.kw =0.9
+        self.kyaw = 1.5
         self.kalpha = 1.5
 
         self.state_initialized=False;

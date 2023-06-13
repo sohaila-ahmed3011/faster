@@ -11,6 +11,7 @@
 #include "geometry_msgs/Twist.h"
 #include "nav_msgs/Path.h"
 #include "visualization_msgs/MarkerArray.h"
+#include "timer.hpp"
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/filters/filter.h>
@@ -37,36 +38,7 @@ JPS_Manager::JPS_Manager()
 {
   map_util_ = std::make_shared<JPS::VoxelMapUtil>();
   planner_ptr_ = std::unique_ptr<JPSPlanner3D>(new JPSPlanner3D(false));
-}
-
-//  JPS_Manager::JPS_Manager(JPS_Manager &t)
-//  {
-
-//   map_util_ = t.map_util_;
-//   planner_ptr_ = t.planner_ptr_;
-//   vec_o_ = t.vec_o_;   // Vector that contains the occupied points
-//   vec_uo_ = t.vec_uo_;  // Vector that contains the unkown and occupied points
-//  }
-
-
-
-JPS_Manager::JPS_Manager(const JPS_Manager& other) {
-    factor_jps_ = other.factor_jps_;
-    res_ = other.res_;
-    inflation_jps_ = other.inflation_jps_;
-    z_ground_ = other.z_ground_;
-    z_max_ = other.z_max_;
-    drone_radius_ = other.drone_radius_;
-    cells_x_ = other.cells_x_;
-    cells_y_ = other.cells_y_;
-    cells_z_ = other.cells_z_;
-    visual_ = other.visual_;
-    ellip_decomp_util_ = other.ellip_decomp_util_;
-    map_util_ = other.map_util_;
-    planner_ptr_ = std::make_unique<JPSPlanner3D>(*other.planner_ptr_);
-    // planner_ptr = other.planner_ptr_;
-    vec_o_ = other.vec_o_;
-    vec_uo_ = other.vec_uo_;
+  hybrid_a_star_ptr_ = std::make_shared<Planner>();
 }
 
 void JPS_Manager::setNumCells(int cells_x, int cells_y, int cells_z)
@@ -137,17 +109,7 @@ void JPS_Manager::cvxEllipsoidDecomp(vec_Vecf<3>& path, int type_space, std::vec
   // Convert to inequality constraints Ax < b
   // std::vector<polytope> polytopes;
   auto polys = ellip_decomp_util_.get_polyhedrons();
-  auto ellipsoids = ellip_decomp_util_.get_ellipsoids();
 
-  total_poly_area_ = 0;
-  
-
-  for (size_t i = 0; i < path.size() - 1; i++)
-    {
-      total_poly_area_ += ellipsoids[i].volume();
-    }
-  
-  // std::cout<< "Approximated Polyhedrons volume is: " << total_poly_area_<< std::endl;
   l_constraints.clear();
 
   for (size_t i = 0; i < path.size() - 1; i++)
@@ -171,34 +133,41 @@ double JPS_Manager::getVolume()
   return total_poly_area_;
 }
 
-void JPS_Manager::updateJPSMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr, Eigen::Vector3d& center)
+void JPS_Manager::updateJPSMap(pcl::PointCloud<pcl::PointXYZ>::Ptr pclptr, Eigen::Vector3d& center, nav_msgs::OccupancyGridPtr ocubptr, Vec3f _start_velocity_)
 {
   Vec3f center_map = center;  // state_.pos;
-
+  
+  hybridVel_ =  _start_velocity_;
+  
   mtx_jps_map_util.lock();
 
+
+  // auto start_time = std::chrono::steady_clock::now(); // Get start time
+  // TODO: don't update the two maps. just one of them.
+  hybrid_a_star_ptr_->setmap(ocubptr, cells_x_, cells_y_, cells_z_, factor_jps_ * res_ ); //map to hybrid a star
+
   map_util_->readMap(pclptr, cells_x_, cells_y_, cells_z_, factor_jps_ * res_, center_map, z_ground_, z_max_,
-                     inflation_jps_);  // Map read
+                     inflation_jps_);  // Map read to jps
+  
+  //  auto end_time = std::chrono::steady_clock::now(); // Get end time
 
   mtx_jps_map_util.unlock();
 }
 
-vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* solved, int i)
+void JPS_Manager::performAStar(Eigen::Vector3d start,Eigen::Vector3d goal)
 {
-  Eigen::Vector3d start(start_sent(0), start_sent(1), std::max(start_sent(2), 0.0));
-  Eigen::Vector3d goal(goal_sent(0), goal_sent(1), std::max(goal_sent(2), 0.0));
+  a_star_completed = hybrid_a_star_ptr_->plan(start, goal, hybridVel_);
+  if (a_star_completed)
+  {
+    path_ = hybrid_a_star_ptr_->getPath();    
+    star_counter_ ++;
+  }
 
-  Vec3f originalStart = start;
+}
 
-  pcl::PointXYZ pcl_start = eigenPoint2pclPoint(start);
-  pcl::PointXYZ pcl_goal = eigenPoint2pclPoint(goal);
-
-  ///////////////////////////////////////////////////////////////
-  /////////////////////////// RUN JPS ///////////////////////////
-  ///////////////////////////////////////////////////////////////
-
-  mtx_jps_map_util.lock();
-
+void JPS_Manager::performJPS(Eigen::Vector3d start,Eigen::Vector3d goal)
+{
+  std::cout << "Hybrid A* took more time than required, shifting to JPS now ..." << std::endl;
   // Set start and goal free
   const Veci<3> start_int = map_util_->floatToInt(start);
   const Veci<3> goal_int = map_util_->floatToInt(goal);
@@ -207,35 +176,85 @@ vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* s
   map_util_->setFreeVoxelAndSurroundings(goal_int, inflation_jps_);
 
   planner_ptr_->setMapUtil(map_util_);  // Set collision checking function
-
   bool valid_jps = planner_ptr_->plan(start, goal, 1, true);  // Plan from start to goal with heuristic weight=1, and
                                                               // using JPS (if false --> use A*)
+  path_ = planner_ptr_->getPath();  // getpar_.RawPath() if you want the path with more corners (not "cleaned")
+  Jps_completed = true;
+  jps_counter_ ++;
+}
 
-  vec_Vecf<3> path;
-  path.clear();
+vec_Vecf<3> JPS_Manager::solveJPS3D(Vec3f& start_sent, Vec3f& goal_sent, bool* solved, int i)
+{
+  Eigen::Vector3d start(start_sent(0), start_sent(1), std::max(start_sent(2), 0.0));
+  Eigen::Vector3d goal(goal_sent(0), goal_sent(1), std::max(goal_sent(2), 0.0));
+  
+  Vec3f originalStart = start;
+  Jps_completed = false;
+  a_star_completed = false;
+  // pcl::PointXYZ pcl_start = eigenPoint2pclPoint(start);
+  // pcl::PointXYZ pcl_goal = eigenPoint2pclPoint(goal);
 
-  if (valid_jps == true)  // There is a solution
+  ///////////////////////////////////////////////////////////////
+  /////////////////////////// RUN JPS ///////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  mtx_jps_map_util.lock();
+  path_.clear();
+
+
+  /* Apply Hybrid A* 
+     if not converged in a predifned time (30 ms for example),
+     apply JPS instead
+  */ 
+  performAStar(start, goal);
+  if (!a_star_completed)
   {
-    path = planner_ptr_->getPath();  // getpar_.RawPath() if you want the path with more corners (not "cleaned")
-    if (path.size() > 1)
+    performJPS(start, goal);
+  }
+  std::cout << "path_.size() " << path_.size() << std::endl;
+  for (auto pose:path_)
+  {
+    std::cout << pose.transpose() << std::endl;
+  }
+
+  if (Jps_completed || a_star_completed)  // There is a solution
+  {
+    if (path_.size() > 1)
     {
-      path[0] = start;
-      path[path.size() - 1] = goal;  // force to start and end in the start and goal (and not somewhere in the voxel)
+      path_[0] = start;
+      path_[path_.size() - 1] = goal;  // force to start and end in the start and goal (and not somewhere in the voxel)
+
     }
     else
     {  // happens when start and goal are very near (--> same cell)
       vec_Vecf<3> tmp;
       tmp.push_back(start);
       tmp.push_back(goal);
-      path = tmp;
+      path_ = tmp;
     }
+    
+    if (initiate_path)
+    {
+      path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_hybrid_a_star.txt", std::ofstream::out | std::ofstream::trunc);
+      path_logger.close();
+      initiate_path = false;
+    }
+
+    path_logger.open("/home/ros/ros_ws/src/faster/faster/src/path_hybrid_a_star.txt", std::ios_base::app);
+    path_logger << path_[0][0] << "\n"; //TODO: print the whole path
+    path_logger.close();
+    
+    *solved = true;
   }
   else
   {
-    std::cout << "JPS didn't find a solution from" << start.transpose() << " to " << goal.transpose() << std::endl;
+    std::cout << "Both JPS and Hybrid A* didn't find a solution from " << start.transpose() << " to " << goal.transpose() << std::endl;
+    *solved = false;
   }
+
+  std::cout << "JPS was called " << jps_counter_ << " times and A* was called " << star_counter_ << " times" << std::endl;
   mtx_jps_map_util.unlock();
 
-  *solved = valid_jps;
-  return path;
+  return path_;
+
 }

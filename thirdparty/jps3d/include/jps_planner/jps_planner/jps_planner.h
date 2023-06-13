@@ -67,6 +67,8 @@ protected:
   bool planner_verbose_;
   /// 1-D map array
   std::vector<char> cmap_;
+  /// Hybrid a-star
+  // std::shared_ptr<HybridAStar3D> _hybrid_a_star;
 };
 
 /// Planner for 2D OccMap
