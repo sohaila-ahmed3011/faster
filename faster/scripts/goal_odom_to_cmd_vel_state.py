@@ -149,6 +149,7 @@ class GoalToCmdVel:
           alpha=0;
 
         vel_norm=LA.norm(np.array([self.goal.v.x, self.goal.v.y, self.goal.v.z]));
+        
 
         if (abs(dist_error)<0.10 and vel_norm<0.05): #The robot is just yawing to orient with respect to the goal
 
@@ -194,6 +195,17 @@ class GoalToCmdVel:
 
         # twist.linear.x=self.Kp*(goal.p.x - self.state.pos.x);
 
+        target_pose = np.array([self.goal.p.x, self.goal.p.y, self.goal.yaw])
+        odom_pose = np.array([self.state.pos.x, self.state.pos.y, self.current_yaw])
+
+        tar = open('/home/ros/ros_ws/src/faster/faster/scripts/target_pose.txt', 'a')
+        tar.write(str(target_pose)+"\n")
+        tar.close()
+
+        od = open('/home/ros/ros_ws/src/faster/faster/scripts/odom_pose.txt', 'a')
+        od.write(str(odom_pose)+"\n")
+        od.close()
+
         self.pubCmdVel.publish(twist)
 
 
@@ -204,7 +216,7 @@ class GoalToCmdVel:
         return x-np.pi   
 
     def printAngle(self, value, name):
-        print name, '{:.3f}'.format(value), " rad (",'{:.3f}'.format(value*180/3.14), " deg) " 
+        print( name, '{:.3f}'.format(value), " rad (",'{:.3f}'.format(value*180/3.14), " deg) " )
 
 
 
@@ -230,7 +242,7 @@ if __name__ == '__main__':
             rospy.logfatal("Need to specify namespace as vehicle name.")
             rospy.logfatal("This is tyipcally accomplished in a launch file.")
         else:
-            print "Starting node for: " + ns
+            print ("Starting node for: " + ns)
             startNode()
     except rospy.ROSInterruptException:
         pass
